@@ -1,19 +1,19 @@
-# Quercus (Canvas) automation
+# Canvas study automation
 
-A local Python tool and five Codex skills for working with University of Toronto Quercus courses. The tool lists courses, previews and downloads likely lecture notes, and retrieves assignment and syllabus information. The skills guide Codex through those tasks, course summaries, and exam preparation.
+A local Python tool and Codex skills for working with Canvas courses. Designed by a University of Toronto student, the project was originally built for Quercus, U of T’s Canvas installation. The tool lists courses, previews and downloads likely lecture notes, and retrieves assignment and syllabus information. The skills guide Codex through those tasks, course summaries, and exam preparation.
 
 ## Requirements
 
 - Python 3.8 or later. The tool uses only the Python standard library.
-- A Quercus account and a personal access token, if token creation is enabled for your account. Find it under **Account → Settings → New Access Token** in Quercus.
+- A Canvas account and a personal access token, if your institution enables token creation. Look under **Account → Settings → New Access Token** in your institution’s Canvas site.
 - Codex with support for local skills, if you want to use the skills.
 
 Treat your access token like a password. Do not commit it or paste it into a chat. The commands prompt for it without displaying what you type. For repeated commands, you may instead set `QUERCUS_TOKEN` in your terminal session; avoid putting it in shell history. You can also use the ignored local `.env` file as described below. Remove it with `unset QUERCUS_TOKEN` when finished.
 
-## Set up your Quercus access token
+## Set up your Canvas access token
 
-1. Sign in to [Quercus](https://q.utoronto.ca/) in your browser. Open **Account → Settings** and look for **New Access Token**. If the option is not available, ask your institution about API access; do not try to bypass its controls.
-2. Give the token a recognizable purpose and an expiration date if offered. Generate it and copy it into a password manager or another secure location. Quercus may show the token only once.
+1. Sign in to your institution’s Canvas site in your browser (for U of T, [Quercus](https://q.utoronto.ca/)). Open **Account → Settings** and look for **New Access Token**. If the option is not available, ask your institution about API access; do not try to bypass its controls.
+2. Give the token a recognizable purpose and an expiration date if offered. Generate it and copy it into a password manager or another secure location. Canvas may show the token only once.
 3. Run a command such as `python3 quercus.py courses` from the project directory. Paste the token at the hidden prompt and press Enter; nothing is shown while you type. Repeat for each command, or use the session option below.
 
 Alternatively, save the token in the local `.env` file in the project folder. Create the file if it does not exist, then edit the line below and replace the placeholder with your token:
@@ -33,7 +33,13 @@ python3 quercus.py courses
 unset QUERCUS_TOKEN
 ```
 
-The `read` syntax above is for the default macOS zsh shell; enter the token only at the prompt, not on the command line. Other shells may use different syntax. An environment variable is inherited by processes launched from that terminal, so use it only in a trusted session. Keep tokens out of chat, Git and logs. If a token is exposed or no longer needed, revoke it in Quercus **Account → Settings** and create a replacement if needed. Token creation and expiration options depend on institutional settings.
+The `read` syntax above is for the default macOS zsh shell; enter the token only at the prompt, not on the command line. Other shells may use different syntax. An environment variable is inherited by processes launched from that terminal, so use it only in a trusted session. Keep tokens out of chat, Git and logs. If a token is exposed or no longer needed, revoke it in Canvas **Account → Settings** and create a replacement if needed. Token creation and expiration options depend on institutional settings.
+
+## Canvas institution setup
+
+The current implementation defaults to Quercus at `https://q.utoronto.ca` and has been developed against U of T courses. It does **not** yet have a command-line setting for the Canvas host. To try it with another institution, open `quercus.py` and change the `BASE` constant to your institution’s exact HTTPS Canvas origin, such as `https://canvas.example.edu` (with no path or trailing slash). Use a token issued by that same Canvas site. Verify the address with your institution before entering a token.
+
+The Canvas API and permissions vary by institution; the workflows have not been validated on every Canvas installation. The CLI file, environment variable and skill names retain the `quercus` name for compatibility. They work against the configured `BASE`, not a separate institution selector.
 
 ## Installation
 
@@ -56,7 +62,7 @@ Review existing folders before copying if you already have skills with those nam
 
 ### List courses: `quercus-courses`
 
-Open the project in Codex and ask it to list your Quercus courses, or invoke `$quercus-courses`. The skill uses:
+Open the project in Codex and ask it to list your Canvas courses, or invoke `$quercus-courses`. The skill uses:
 
 ```sh
 python3 quercus.py courses
@@ -96,7 +102,7 @@ Place your past midterms or finals and the instructor's stated exam scope in a l
 
 ## Privacy and limitations
 
-The tool only reads data from Quercus; it does not submit assignments or modify courses. Your token grants access to your account, so revoke it through Quercus if exposed. Downloaded materials remain on your computer and are ignored by Git by default. Some course content can be unavailable, locked, image-only, or hosted outside Canvas; the tool and summaries cannot guarantee complete coverage.
+The tool only reads data from the configured Canvas site; it does not submit assignments or modify courses. Your token grants access to your account, so revoke it through your Canvas account if exposed. Downloaded materials remain on your computer and are ignored by Git by default. Some course content can be unavailable, locked, image-only, or hosted outside Canvas; the tool and summaries cannot guarantee complete coverage.
 
 ## Exam preparation workflows
 
@@ -130,7 +136,7 @@ python3 study.py inventory COURSE_ID
 python3 study.py check-ready COURSE_ID
 ```
 
-Imports are copied into `study-data/`, hashed for duplicate detection, and associated with the course. `study.py extract PATH` extracts text from UTF-8 text, DOCX and PPTX files; PDFs and image-only files require suitable PDF/OCR tools available to Codex. The exam-scope skill reviews source material and saves a scope JSON record using `study.py save-scope COURSE_ID PATH`; it requires `topics` and `problems` arrays; `templates/exam-scope.example.json` provides a starting structure. Missing citations are reported as warnings. `study.py record-attempt COURSE_ID PATH` appends a JSON attempt with a `topic` field only when requested by the student. Both downloads and study data are local and ignored by Git; to remove them, delete the relevant course folders yourself. Deleting the Git repository alone does not remove copies elsewhere.
+Imports are copied into `study-data/`, hashed for duplicate detection, and associated with the course. `study.py extract PATH` extracts text from UTF-8 text, DOCX and PPTX files, and from PDFs when the optional `pypdf` dependency is installed; image-only pages require a separate OCR tool. The exam-scope skill reviews source material and saves a scope JSON record using `study.py save-scope COURSE_ID PATH`; it requires `topics` and `problems` arrays; `templates/exam-scope.example.json` provides a starting structure. Missing citations are reported as warnings. `study.py record-attempt COURSE_ID PATH` appends a JSON attempt with a `topic` field only when requested by the student. Both downloads and study data are local and ignored by Git; to remove them, delete the relevant course folders yourself. Deleting the Git repository alone does not remove copies elsewhere.
 
 Run the local tests with `python3 -m unittest discover -s tests -v`. The skill workflows depend on Codex and available document tools and have not been validated against every course or exam format. Read generated answers critically and verify exam dates and requirements with the instructor.
 

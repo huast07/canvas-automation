@@ -17,8 +17,9 @@ class PracticeTests(unittest.TestCase):
         self.root_patch = patch.object(study, 'ROOT', self.base / 'study')
         self.root_patch.start()
         self.root = study.course_dir(7)
-        study.write_json(self.root / 'sync.json', {'matched': 1})
-        study.write_json(self.root / 'exam-scope.json', {'exam_id': 'Midterm', 'topics': [], 'problems': []})
+        note = self.base / 'note.txt'; note.write_text('Lecture')
+        study.write_json(self.root / 'sync.json', {'matched': 1, 'files': {'1': {'path': str(note)}}})
+        study.write_json(self.root / 'exam-scope.json', {'exam_id': 'Midterm', 'topics': ['A'], 'problems': []})
         self.bank = {'exam_id': 'Midterm', 'reviewed': True, 'questions': [
             {'id': 'q2', 'topic': 'B', 'level': 3, 'origin': 'original', 'prompt': 'Hard', 'hints': ['Hint B'], 'solution': 'Secret B', 'source': 'notes p. 2'},
             {'id': 'q1', 'topic': 'A', 'level': 1, 'origin': 'original', 'prompt': 'Easy', 'hints': ['Hint A'], 'solution': 'Secret A', 'source': 'notes p. 1'}]}

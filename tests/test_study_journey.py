@@ -30,7 +30,7 @@ class JourneyTests(unittest.TestCase):
                     self.assertEqual(study.main(), 0)
                 with patch('sys.argv', ['study.py', 'check-ready', '7']):
                     self.assertEqual(study.main(), 1)
-                study.write_json(study.course_dir(7) / 'sync.json', {'completed_at': study.now(), 'matched': 1, 'files': {}})
+                study.write_json(study.course_dir(7) / 'sync.json', {'completed_at': study.now(), 'matched': 1, 'files': {'1': {'path': str(path)}}})
                 with patch('sys.argv', ['study.py', 'check-ready', '7']):
                     self.assertEqual(study.main(), 0)
                 now = datetime.now(timezone.utc)

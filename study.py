@@ -162,6 +162,41 @@ def scope_warnings(data):
     return warnings
 
 
+def readiness(course):
+    root = course_dir(course)
+    sync = read_json(root / 'sync.json', None)
+    scope = read_json(root / 'exam-scope.json', None)
+    missing, warnings = [], []
+    if sync is None:
+        missing.append('lecture sync')
+    else:
+        files = sync.get('files', {})
+        if not isinstance(files, dict) or not any(record.get('path') and Path(record['path']).is_file() for record in files.values() if isinstance(record, dict)):
+            missing.append('at least one downloaded lecture note from a completed sync')
+        if sync.get('failures', 0):
+            warnings.append('Lecture sync had failures; inspect missing sources.')
+        if any(entry.get('status') == 'inaccessible' for entry in sync.get('inventory', [])):
+            warnings.append('Some course sources were inaccessible; coverage may be incomplete.')
+    if not isinstance(scope, dict):
+        missing.append('exam scope mapping')
+    else:
+        if not (scope.get('exam_id') or scope.get('exam')):
+            missing.append('exam identifier in the saved scope')
+        if not isinstance(scope.get('topics'), list) or not scope['topics']:
+            missing.append('at least one mapped exam topic')
+    if isinstance(scope, dict) and scope.get('mapped_at'):
+        for filename, field in [('sync.json', 'completed_at'), ('course-context.json', 'fetched_at'), ('sources.json', 'indexed_at')]:
+            data = read_json(root / filename, {})
+            try:
+                updated = datetime.fromisoformat(data.get(field, '').replace('Z', '+00:00'))
+                mapped = datetime.fromisoformat(scope['mapped_at'].replace('Z', '+00:00'))
+                if updated.tzinfo is not None and mapped.tzinfo is not None and updated > mapped:
+                    warnings.append(f'{filename} is newer than the exam scope; review whether it changed.')
+            except (ValueError, TypeError):
+                pass
+    return missing, warnings
+
+
 def schedule_review(record, outcome, current):
     """Use an editable 1/3/7 day heuristic, not an assessment of mastery."""
     stage = int(record.get('review_stage', 0))
@@ -296,10 +331,9 @@ def main():
                 print('Warning:', warning)
         elif args.command == 'check-ready':
             root = course_dir(args.course_id)
-            missing = [label for path, label in [(root / 'sync.json', 'lecture sync'), (root / 'exam-scope.json', 'exam scope mapping')] if not path.exists()]
-            sync = read_json(root / 'sync.json', {})
-            if sync and (sync.get('matched') == 0 or sync.get('failures', 0)):
-                print('Warning: lecture sync selected no notes or had failures; review source gaps.')
+            missing, warnings = readiness(args.course_id)
+            for warning in warnings:
+                print('Warning:', warning)
             if missing:
                 print('Required first: ' + ', '.join(missing))
                 return 1

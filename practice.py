@@ -8,13 +8,16 @@ import re
 import sys
 import uuid
 
-from study import course_dir, read_json, write_json
+from study import course_dir, read_json, write_json, readiness
 
 
 def ready(course):
     root = course_dir(course)
-    if not (root / 'sync.json').exists() or not (root / 'exam-scope.json').exists():
-        raise ValueError('Run lecture sync and exam scope mapping first')
+    missing, warnings = readiness(course)
+    for warning in warnings:
+        print('Warning:', warning, file=sys.stderr)
+    if missing:
+        raise ValueError('Required first: ' + ', '.join(missing))
     scope = read_json(root / 'exam-scope.json', {})
     identifier = scope.get('exam_id') or scope.get('exam')
     if not identifier:

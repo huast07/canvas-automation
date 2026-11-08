@@ -44,8 +44,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(len(study.read_json(study.course_dir(1) / 'imports.json', [])), 1)
         with patch('sys.argv', ['study', 'check-ready', '1']):
             self.assertEqual(study.main(), 1)
-        study.write_json(study.course_dir(1) / 'sync.json', {'completed_at': 'today'})
-        study.write_json(study.course_dir(1) / 'exam-scope.json', {'topics': [], 'problems': []})
+        study.write_json(study.course_dir(1) / 'sync.json', {'completed_at': 'today', 'files': {'1': {'path': str(src)}}})
+        study.write_json(study.course_dir(1) / 'exam-scope.json', {'exam_id': 'Midterm', 'topics': ['Topic'], 'problems': []})
         with patch('sys.argv', ['study', 'check-ready', '1']):
             self.assertEqual(study.main(), 0)
     def test_sync_preview_download_and_changed_file(self):

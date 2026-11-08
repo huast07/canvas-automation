@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 import sys
 
-from study import course_dir, read_json, write_json, now
+from study import course_dir, read_json, write_json, now, readiness
 
 
 def exam_time(value):
@@ -193,8 +193,11 @@ def main():
         if exam <= datetime.now(exam.tzinfo):
             raise ValueError('Exam time must be in the future')
         scope = read_json(root / 'exam-scope.json', None)
-        if scope is None or not (root / 'sync.json').exists():
-            raise ValueError('Complete lecture sync and exam scope mapping first')
+        missing, warnings = readiness(args.course_id)
+        if missing:
+            raise ValueError('Required first: ' + ', '.join(missing))
+        for warning in warnings:
+            print('Warning:', warning, file=sys.stderr)
         if args.command == 'cram':
             available = int((exam - datetime.now(exam.tzinfo)).total_seconds() // 60)
             if args.minutes > available:

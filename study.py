@@ -10,6 +10,8 @@ from pathlib import Path
 import re
 import shutil
 import sys
+import subprocess
+import tempfile
 import zipfile
 from xml.etree import ElementTree
 
@@ -71,7 +73,30 @@ def import_document(course, kind, source):
     print(f'Imported {dest}')
 
 
-def extract(path):
+def text_needs_review(text):
+    """Identify empty or obviously corrupted extraction, not all OCR errors."""
+    if not text or not text.strip():
+        return True
+    broken = text.count('\x00') + text.count('�') + len(re.findall(r'/u[0-9A-Fa-f]{4,6}|/uni[0-9A-Fa-f]{4,6}', text)) * 4
+    return broken >= 5 and broken / max(len(text), 1) > 0.02
+
+
+def ocr_page(path, number):
+    renderer = shutil.which('pdftoppm')
+    engine = shutil.which('tesseract')
+    if not renderer or not engine:
+        raise ValueError('OCR requires pdftoppm and tesseract on PATH')
+    try:
+        with tempfile.TemporaryDirectory(prefix='study-ocr-') as directory:
+            prefix = str(Path(directory) / 'page')
+            subprocess.run([renderer, '-f', str(number), '-l', str(number), '-r', '200', '-png', '-singlefile', str(path), prefix], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
+            result = subprocess.run([engine, prefix + '.png', 'stdout'], check=True, capture_output=True, text=True, timeout=120)
+            return result.stdout.strip()
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+        raise ValueError(f'OCR failed for page {number} ({type(exc).__name__})') from exc
+
+
+def extract(path, ocr=False):
     suffix = path.suffix.lower()
     if suffix in ('.txt', '.md'):
         return path.read_text(encoding='utf-8'), 'text file'
@@ -85,8 +110,19 @@ def extract(path):
             chunks = []
             for number, page in enumerate(reader.pages, 1):
                 text = page.extract_text() or ''
-                chunks.append(f'[page {number}] ' + (text if text.strip() else '[No extractable text; image-only page or OCR required]'))
-            return '\n'.join(chunks), 'PDF page markers; image-only pages need OCR'
+                if text_needs_review(text):
+                    if ocr:
+                        text = ocr_page(path, number)
+                        if text.strip():
+                            text = '[OCR text; verify against original] ' + text
+                        else:
+                            text = '[OCR required: OCR produced no usable text]'
+                    else:
+                        text = '[OCR required: empty or corrupted extracted text] ' + text
+                chunks.append(f'[page {number}] ' + text)
+            return '\n'.join(chunks), 'PDF page markers; review OCR, equations and diagrams'
+        except ValueError:
+            raise
         except Exception as exc:
             raise ValueError(f'Could not extract PDF ({type(exc).__name__})') from exc
     if suffix in ('.docx', '.pptx'):
@@ -144,7 +180,7 @@ def schedule_review(record, outcome, current):
     return record
 
 
-def index_sources(course):
+def index_sources(course, ocr=False):
     root = course_dir(course)
     imports = read_json(root / 'imports.json', [])
     sync = read_json(root / 'sync.json', {})
@@ -157,13 +193,15 @@ def index_sources(course):
         try:
             if not path.is_file():
                 raise ValueError('File is missing')
-            content, quality = extract(path)
+            content, quality = extract(path, ocr=ocr)
             checksum = digest(path)
             output = root / 'extracted' / f'{checksum}.json'
             write_json(output, {'source': str(path), 'sha256': checksum, 'quality': quality, 'text': content})
             item.update({'status': 'extracted', 'sha256': checksum, 'extracted_path': str(output), 'quality': quality})
             if 'OCR required' in content:
                 item['status'] = 'partial: OCR required'
+            elif '[OCR text; verify against original]' in content:
+                item['status'] = 'partial: OCR needs review'
         except (OSError, ValueError, KeyError, UnicodeError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
             item.update({'status': 'unreadable', 'reason': str(exc)})
         results.append(item)
@@ -203,9 +241,9 @@ def main():
     inv = sub.add_parser('inventory'); inv.add_argument('course_id', type=int)
     rem = sub.add_parser('remove-import', help='Remove one imported local copy by full SHA-256')
     rem.add_argument('course_id', type=int); rem.add_argument('sha256')
-    ext = sub.add_parser('extract'); ext.add_argument('path', type=Path)
+    ext = sub.add_parser('extract'); ext.add_argument('path', type=Path); ext.add_argument('--ocr', action='store_true', help='OCR empty or corrupted PDF pages locally')
     index = sub.add_parser('index', help='Extract and index available course sources')
-    index.add_argument('course_id', type=int)
+    index.add_argument('course_id', type=int); index.add_argument('--ocr', action='store_true', help='OCR empty or corrupted PDF pages locally')
     scope = sub.add_parser('save-scope', help='Save a reviewed exam scope JSON document')
     scope.add_argument('course_id', type=int); scope.add_argument('path', type=Path)
     check = sub.add_parser('check-ready', help='Check prerequisites for the tutor')
@@ -243,9 +281,9 @@ def main():
             write_json(manifest_path, records)
             print('Imported copy removed. Re-run index to refresh extracted source records.')
         elif args.command == 'index':
-            return index_sources(args.course_id)
+            return index_sources(args.course_id, ocr=args.ocr)
         elif args.command == 'extract':
-            content, quality = extract(args.path)
+            content, quality = extract(args.path, ocr=args.ocr)
             print(f'Extraction: {quality}; check diagrams, equations, and missing text.', file=sys.stderr)
             print(content)
         elif args.command == 'save-scope':

@@ -81,6 +81,15 @@ class PlanningTests(unittest.TestCase):
             content, _ = study.extract(path)
             self.assertIn('[page 1]', content)
             self.assertIn('OCR required', content)
+            with patch('study.ocr_page', return_value='Recognized words'):
+                content, _ = study.extract(path, ocr=True)
+            self.assertIn('[OCR text; verify against original]', content)
+            self.assertIn('Recognized words', content)
+
+    def test_corrupt_text_is_flagged(self):
+        self.assertTrue(study.text_needs_review('bad ' + '\x00' * 30))
+        self.assertTrue(study.text_needs_review('/u1D466 ' * 20))
+        self.assertFalse(study.text_needs_review('A normal page with readable text.'))
 
 
 if __name__ == '__main__':

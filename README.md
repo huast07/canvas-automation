@@ -136,7 +136,7 @@ python3 study.py inventory COURSE_ID
 python3 study.py check-ready COURSE_ID
 ```
 
-Imports are copied into `study-data/`, hashed for duplicate detection, and associated with the course. `study.py extract PATH` extracts text from UTF-8 text, DOCX and PPTX files, and from PDFs when the optional `pypdf` dependency is installed; image-only pages require a separate OCR tool. The exam-scope skill reviews source material and saves a scope JSON record using `study.py save-scope COURSE_ID PATH`; it requires `topics` and `problems` arrays; `templates/exam-scope.example.json` provides a starting structure. Missing citations are reported as warnings. `study.py record-attempt COURSE_ID PATH` appends a JSON attempt with a `topic` field only when requested by the student. Both downloads and study data are local and ignored by Git; to remove them, delete the relevant course folders yourself. Deleting the Git repository alone does not remove copies elsewhere.
+Imports are copied into `study-data/`, hashed for duplicate detection, and associated with the course. `study.py extract PATH` extracts text from UTF-8 text, DOCX and PPTX files, and from PDFs when the optional `pypdf` dependency is installed; image-only or corrupted pages can optionally be processed using local OCR. The exam-scope skill reviews source material and saves a scope JSON record using `study.py save-scope COURSE_ID PATH`; it requires `topics` and `problems` arrays; `templates/exam-scope.example.json` provides a starting structure. Missing citations are reported as warnings. `study.py record-attempt COURSE_ID PATH` appends a JSON attempt with a `topic` field only when requested by the student. Both downloads and study data are local and ignored by Git; to remove them, delete the relevant course folders yourself. Deleting the Git repository alone does not remove copies elsewhere.
 
 Run the local tests with `python3 -m unittest discover -s tests -v`. The skill workflows depend on Codex and available document tools and have not been validated against every course or exam format. Read generated answers critically and verify exam dates and requirements with the instructor.
 
@@ -146,7 +146,7 @@ If Python reports `CERTIFICATE_VERIFY_FAILED`, check its certificate setup. Pyth
 
 ### PDF extraction and local study plans
 
-For PDF text extraction install the optional dependency with `python3 -m pip install -r requirements.txt`. `python3 study.py extract PATH` labels PDF pages and reports pages without extractable text; OCR is not included. DOCX and PPTX extraction may omit equations, diagrams and layout, so check the originals.
+For PDF text extraction install the optional dependency with `python3 -m pip install -r requirements.txt`. `python3 study.py extract PATH` labels PDF pages and reports empty or obviously corrupted text. To attempt local OCR on those pages, install `pdftoppm` (Poppler) and `tesseract`, then use `python3 study.py extract PATH --ocr` or `python3 study.py index COURSE_ID --ocr`. OCR runs locally and its output is marked for review; mathematical notation and handwriting can be inaccurate. DOCX and PPTX extraction may omit equations, diagrams and layout, so check the originals.
 
 After syncing lecture notes and saving a reviewed scope, create an editable local plan or budget a cram session:
 

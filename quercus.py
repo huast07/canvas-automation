@@ -109,6 +109,8 @@ def lecture_note(file, folders):
     supported = extension in {'.pdf', '.ppt', '.pptx', '.doc', '.docx', '.txt', '.md'} or (bool(file.get('_module')) and not extension)
     if file.get('_page') and not extension:
         supported = True
+        if re.search(r'\bcompleted\b.*\bnotes\b', file['_page'], re.I) and re.match(r'lecture[\s_\-]*\d+(?!\d)', name, re.I):
+            return True
         return bool(re.search(r'\b(notes|slides|handout|lecture)\b', name, re.I))
     return supported and bool(re.search(r'\b(lecture|lectures|notes|slides|slide|lec)\b', name + ' ' + path, re.I))
 
@@ -129,7 +131,33 @@ def superseded_blank_notes(files):
         if label and normalized and any(x is not None and x != '' for x in context):
             indexed.append((item['id'], label, normalized, context))
     complete_keys = {(name, context) for _, label, name, context in indexed if label == 'completed'}
-    return {file_id for file_id, label, name, context in indexed if label == 'blank' and (name, context) in complete_keys}
+    superseded = {file_id for file_id, label, name, context in indexed if label == 'blank' and (name, context) in complete_keys}
+    # Some courses keep completed notes on a separate course-wide index page.
+    # Match by explicit lecture number, not by folder name or title similarity alone.
+    def topic_words(value):
+        # A number alone is insufficient: some instructors number their indexes differently.
+        value = re.sub(r'([a-z])([A-Z])', r'\1 \2', value)
+        stop = {'lecture', 'notes', 'completed', 'introduction', 'intro', 'week', 'class', 'annotated', 'skeleton'}
+        words = re.findall(r'[a-zA-Z]{4,}', value.casefold())
+        return {word[:5] for word in words if word not in stop}
+
+    completed_lectures = {}
+    for item in files:
+        if re.search(r'\bcompleted\b.*\bnotes\b', item.get('_page', ''), re.I):
+            title = item.get('display_name', '')
+            match = re.match(r'lecture[\s_\-]*(\d+)(?!\d)', title, re.I)
+            if match:
+                completed_lectures.setdefault(int(match.group(1)), []).append(topic_words(title))
+    for item in files:
+        page = item.get('_page', '')
+        title = item.get('display_name') or item.get('filename') or ''
+        match = re.search(r'\blecture[\s_\-]*(\d+)(?!\d)', page, re.I)
+        variants = re.search(r'\b(blank|empty|skeleton|unannotated|partially[ -]+annotated)\b', title, re.I)
+        if match and variants:
+            words = topic_words(page)
+            if words and any(words & candidate for candidate in completed_lectures.get(int(match.group(1)), [])):
+                superseded.add(item['id'])
+    return superseded
 
 
 class PageLinks(HTMLParser):
@@ -166,7 +194,7 @@ def page_file_links(body, course_id):
             yield int(match.group(2)), title
 
 
-def download_course(client, course_id, output, preview=False, include_ids=(), exclude_ids=(), include_patterns=(), exclude_patterns=(), download_updates=False):
+def download_course(client, course_id, output, preview=False, include_ids=(), exclude_ids=(), include_patterns=(), exclude_patterns=(), download_updates=False, only_patterns=()):
     courses = list(client.pages('/api/v1/courses?per_page=100'))
     course = next((c for c in courses if str(c['id']) == str(course_id)), None)
     if not course:
@@ -224,6 +252,7 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
     try:
         includes = [re.compile(pattern, re.I) for pattern in include_patterns]
         excludes = [re.compile(pattern, re.I) for pattern in exclude_patterns]
+        only = [re.compile(pattern, re.I) for pattern in only_patterns]
     except re.error as exc:
         raise ValueError(f'Invalid selection pattern: {exc}') from exc
 
@@ -232,7 +261,7 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
     def selected(file):
         name = file.get('display_name') or file.get('filename') or ''
         context = ' '.join(folder_parts(file.get('folder_id'), folders) + [file.get('_module', ''), file.get('_page', ''), name])
-        included = lecture_note(file, folders) or file['id'] in include_ids or any(p.search(context) for p in includes)
+        included = (any(p.search(context) for p in only) or file['id'] in include_ids) if only else (lecture_note(file, folders) or file['id'] in include_ids or any(p.search(context) for p in includes))
         prefer_completed = file['id'] not in superseded or file['id'] in include_ids
         return included and prefer_completed and file['id'] not in exclude_ids and not any(p.search(context) for p in excludes)
 
@@ -370,6 +399,7 @@ def main():
     download.add_argument('--download-updates', action='store_true', help='Save remotely changed files as separate copies')
     download.add_argument('--include-pattern', action='append', default=[], help='Include titles or folders matching this case-insensitive regex')
     download.add_argument('--exclude-pattern', action='append', default=[], help='Exclude titles or folders matching this case-insensitive regex')
+    download.add_argument('--only-pattern', action='append', default=[], help='Select only matches for this regex (or explicit include IDs)')
     due = sub.add_parser('due', help='Show upcoming dated assignments')
     due.add_argument('course_id', type=int)
     context = sub.add_parser('context', help='Save syllabus and announcements locally')
@@ -390,7 +420,7 @@ def main():
                 print(f"{course['id']}\t{course.get('course_code', '')}\t{course.get('name', '')}")
             return 0
         if args.command == 'download':
-            return download_course(client, args.course_id, args.output, args.preview, args.include_id, args.exclude_id, args.include_pattern, args.exclude_pattern, args.download_updates)
+            return download_course(client, args.course_id, args.output, args.preview, args.include_id, args.exclude_id, args.include_pattern, args.exclude_pattern, args.download_updates, args.only_pattern)
         if args.command == 'context':
             return save_course_context(client, args.course_id, args.start, args.end)
         if args.command == 'syllabus':

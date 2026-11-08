@@ -116,6 +116,20 @@ class WorkflowTests(unittest.TestCase):
         ]
         self.assertEqual(quercus.superseded_blank_notes(items), {1})
 
+    def test_completed_notes_index_matches_lecture_number(self):
+        items = [
+            {'id': 1, 'display_name': 'Skeleton Notes', '_page': 'Lecture 1: Logic Circuits'},
+            {'id': 2, 'display_name': 'Partially Annotated Notes', '_page': 'Lecture 1: Logic Circuits'},
+            {'id': 3, 'display_name': 'Lecture1_LogicCircuits', '_page': 'Completed lecture notes to date'},
+            {'id': 4, 'display_name': 'Skeleton Notes', '_page': 'Lecture 2: Other'},
+            {'id': 5, 'display_name': 'Course syllabus', '_page': 'Completed lecture notes to date'},
+            {'id': 6, 'display_name': 'Skeleton Notes', '_page': 'Lecture 9: Logic Optimization'},
+            {'id': 7, 'display_name': 'Lecture9_FiniteStateMachines', '_page': 'Completed lecture notes to date'},
+        ]
+        self.assertEqual(quercus.superseded_blank_notes(items), {1, 2})
+        self.assertTrue(quercus.lecture_note(items[2], {}))
+        self.assertFalse(quercus.lecture_note(items[4], {}))
+
     def test_course_specific_selection_patterns(self):
         client = FakeClient()
         quercus.download_course(client, 7, self.base / 'out', include_patterns=['problem set'], exclude_patterns=['lectures'])
@@ -123,6 +137,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(any(p.name == 'problem set [13].pdf' for p in (self.base / 'out').rglob('*.pdf')))
         self.assertFalse(quercus.lecture_note({'display_name': '📈 Week 1', '_module': 'Intro'}, {}))
         self.assertTrue(quercus.lecture_note({'display_name': 'Lecture 1', '_module': 'Intro'}, {}))
+
+    def test_only_pattern_overrides_default_lecture_candidates(self):
+        client = FakeClient()
+        quercus.download_course(client, 7, self.base / 'out', only_patterns=['problem set'])
+        self.assertEqual(client.downloads, 1)
+        self.assertTrue(any(p.name == 'problem set [13].pdf' for p in (self.base / 'out').rglob('*.pdf')))
 
     def test_extraction_and_inclusion_override(self):
         path = self.base / 'note.md'; path.write_text('hello')

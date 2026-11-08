@@ -81,6 +81,11 @@ class PlanningTests(unittest.TestCase):
         compact = catalog.candidates('[page 1] 2.First question\n[page 2] 3.Second question', 'exam.pdf')
         self.assertEqual([x['number'] for x in compact], ['2', '3'])
 
+    def test_index_rejects_empty_course_without_creating_index(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(study, 'ROOT', Path(temp)):
+            self.assertEqual(study.index_sources(468794), 1)
+            self.assertFalse((study.course_dir(468794) / 'sources.json').exists())
+
     def test_source_index_reports_missing_and_available(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)

@@ -221,6 +221,11 @@ def index_sources(course, ocr=False):
     sync = read_json(root / 'sync.json', {})
     sources = [{'path': x.get('path', ''), 'type': x.get('type', 'other'), 'origin': 'import'} for x in imports]
     sources += [{'path': x.get('path', ''), 'type': 'lecture', 'origin': f'Canvas file {file_id}'} for file_id, x in sync.get('files', {}).items()]
+    if not sources:
+        print(f'No downloaded or imported documents found for course {course}.', file=sys.stderr)
+        print(f'Preview and download lecture notes with: python3 quercus.py download {course} --preview', file=sys.stderr)
+        print(f'Or import a local document with: python3 study.py import {course} lecture /path/to/file', file=sys.stderr)
+        return 1
     results = []
     for source in sources:
         path = Path(source['path'])

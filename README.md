@@ -72,7 +72,7 @@ Enter your token at the hidden prompt and note the course ID. If Codex cannot ac
 
 ### Download lecture notes: `quercus-lecture-notes`
 
-Ask Codex to download lecture notes for a course, or invoke `$quercus-lecture-notes` with its course ID. The skill prefers completed notes over a matching blank or skeleton version when it can identify both. It reports uncertain matches and keeps empty notes when no completed version is found. The downloader also suppresses a blank version when it can identify a clearly matching completed file in the same folder or module/page. Ambiguous variants remain visible for review; use `--include-id` to keep both. To run the underlying commands yourself:
+Ask Codex to download lecture notes for a course, or invoke `$quercus-lecture-notes` with its course ID. The skill prefers completed notes over a matching blank or skeleton version when it can identify both. It reports uncertain matches and keeps empty notes when no completed version is found. The downloader also suppresses a blank or partially annotated version when it can identify a clearly matching completed file; for separate completed-notes indexes, it requires both lecture-number and topic evidence. Ambiguous variants remain visible for review; use `--include-id` to keep both. To run the underlying commands yourself:
 
 ```sh
 python3 quercus.py download COURSE_ID --preview
@@ -122,7 +122,7 @@ python3 quercus.py download COURSE_ID --preview --include-pattern '📈'
 python3 quercus.py download COURSE_ID --include-pattern '📈'
 ```
 
-Choose patterns based on that course's actual titles, not the example. Use repeatable `--exclude-pattern` or `--exclude-id` options to remove false positives; exclusions take precedence. Patterns match titles and folder or module names. Regular expressions can match more than intended, so always inspect the preview. Module previews may not have file timestamps; changed status is checked on download.
+Choose patterns based on that course's actual titles, not the example. Use repeatable `--exclude-pattern` or `--exclude-id` options to remove false positives; exclusions take precedence. Use `--only-pattern` when you want to restrict the selection to a particular module, page, or filename pattern instead of adding it to the defaults. Patterns match titles and folder or module names. Regular expressions can match more than intended, so always inspect the preview. Module previews may not have file timestamps; changed status is checked on download.
 
 A sync records downloaded files in `study-data/COURSE_ID/sync.json`. It keeps existing files and reports remote changes. Add `--download-updates` to save changed versions as separate files without overwriting local copies. Metadata counts for modules, pages, discussions and assignments are informational; this version does not download their contents or reliably detect missing numbered lectures. A completed sync is not proof of complete lecture coverage.
 
@@ -167,7 +167,7 @@ python3 quercus.py context COURSE_ID --start 2026-09-01 --end 2026-12-31
 python3 study.py index COURSE_ID
 ```
 
-Use your own course dates. Canvas defaults to a short announcement window, so the command requires an explicit range. Course context and extracted text are stored under the ignored `study-data/` directory. The source index reports missing files, extraction errors and pages requiring OCR; it does not automatically understand the documents. Ask `$quercus-exam-scope` to inspect the sources and produce a reviewed, cited scope and past-problem catalog. `$quercus-summary` uses the same index. Codex generates the interpretation and practice in conversation; source text may be transmitted to the model service used for that conversation, so share only materials you are permitted to use and are comfortable processing there.
+Use your own course dates. Canvas defaults to a short announcement window, so the command requires an explicit range. Course context and extracted text are stored under the ignored `study-data/` directory. The source index reports when a course has no downloaded or imported documents, as well as missing files, extraction errors and pages requiring OCR; it does not automatically understand the documents. Ask `$quercus-exam-scope` to inspect the sources and produce a reviewed, cited scope and past-problem catalog. `$quercus-summary` uses the same index. Codex generates the interpretation and practice in conversation; source text may be transmitted to the model service used for that conversation, so share only materials you are permitted to use and are comfortable processing there.
 
 ### Past problems and review records
 

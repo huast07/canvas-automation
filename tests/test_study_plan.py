@@ -28,6 +28,12 @@ class PlanningTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             study_plan.exam_time('2030-03-05T12:00')
 
+    def test_scope_surfaces_missing_citations(self):
+        warnings = study.scope_warnings({'exam_id': 'midterm', 'topics': [{'name': 'Forces'}], 'problems': [{'number': 1}]})
+        self.assertEqual(len(warnings), 2)
+        with self.assertRaises(ValueError):
+            study.scope_warnings({'topics': [], 'problems': ['not an object']})
+
     def test_review_spacing_can_reset_after_a_mistake(self):
         today = datetime(2030, 1, 1, tzinfo=timezone.utc)
         record = {'needs_review': True}

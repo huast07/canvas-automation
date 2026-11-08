@@ -105,6 +105,27 @@ def extract(path):
     raise ValueError('Unsupported for built-in extraction; use a PDF/OCR or document tool')
 
 
+def scope_warnings(data):
+    if not isinstance(data, dict) or not isinstance(data.get('topics'), list) or not isinstance(data.get('problems'), list):
+        raise ValueError('Scope JSON must contain topics and problems arrays')
+    if any(not isinstance(topic, (str, dict)) for topic in data['topics']):
+        raise ValueError('Each topic must be text or an object')
+    if any(not isinstance(problem, dict) for problem in data['problems']):
+        raise ValueError('Each problem must be an object')
+    warnings = []
+    if not (data.get('exam_id') or data.get('exam')):
+        warnings.append('No exam identifier specified.')
+    if not data['topics']:
+        warnings.append('No topics recorded; exam coverage is unknown.')
+    for i, topic in enumerate(data['topics'], 1):
+        if isinstance(topic, str) or not topic.get('source'):
+            warnings.append(f'Topic {i} has no source citation or source detail.')
+    for i, problem in enumerate(data['problems'], 1):
+        if not problem.get('source'):
+            warnings.append(f'Problem {i} has no source citation.')
+    return warnings
+
+
 def schedule_review(record, outcome, current):
     """Use an editable 1/3/7 day heuristic, not an assessment of mastery."""
     stage = int(record.get('review_stage', 0))
@@ -229,11 +250,12 @@ def main():
             print(content)
         elif args.command == 'save-scope':
             data = json.loads(args.path.read_text(encoding='utf-8'))
-            if not isinstance(data, dict) or not isinstance(data.get('topics'), list) or not isinstance(data.get('problems'), list):
-                raise ValueError('Scope JSON must contain topics and problems arrays')
+            warnings = scope_warnings(data)
             data['mapped_at'] = now()
             write_json(course_dir(args.course_id) / 'exam-scope.json', data)
             print('Exam scope saved. Confirm dates, constraints and uncertain topics with the instructor.')
+            for warning in warnings:
+                print('Warning:', warning)
         elif args.command == 'check-ready':
             root = course_dir(args.course_id)
             missing = [label for path, label in [(root / 'sync.json', 'lecture sync'), (root / 'exam-scope.json', 'exam scope mapping')] if not path.exists()]

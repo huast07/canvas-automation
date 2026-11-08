@@ -156,7 +156,7 @@ python3 study_plan.py cram COURSE_ID --exam 2027-04-20T14:00-04:00 --minutes 90
 python3 study_plan.py review COURSE_ID
 ```
 
-Use your own dates and timezone offset. `create` uses consecutive dates up to the exam, so edit `study-data/COURSE_ID/study-plan.json` to match your actual availability. It does not schedule notifications. Mark recorded attempts with `needs_review: true` to include them in the review queue; edit or delete local records to correct or remove them. These plans are suggestions, not predictions of performance.
+Use your own dates and timezone offset. `create` uses consecutive dates up to the exam, so edit `study-data/COURSE_ID/study-plan.json` to match your actual availability. It does not schedule notifications. To move incomplete sessions, run `python3 study_plan.py reschedule COURSE_ID --start YYYY-MM-DD --days N`; completed sessions are preserved, and the command fails without changing the plan if there are too few days. Export a local calendar file with `python3 study_plan.py export-ics COURSE_ID /path/to/study.ics --time 18:00 --offset=-05:00`. Importing the file into a calendar is a separate action. The offset is fixed for all sessions, so check it for daylight-saving changes and existing calendar conflicts. Mark recorded attempts with `needs_review: true` to include them in the review queue; edit or delete local records to correct or remove them. These plans are suggestions, not predictions of performance.
 
 ### Course sources and scope
 

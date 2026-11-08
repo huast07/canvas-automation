@@ -28,6 +28,22 @@ class PlanningTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             study_plan.exam_time('2030-03-05T12:00')
 
+    def test_reschedule_preserves_completed_and_calendar_uses_offset(self):
+        exam = datetime(2030, 3, 10, 12, tzinfo=timezone.utc)
+        plan = study_plan.build_plan(exam, 45, date(2030, 3, 2), 3, ['A', 'B'])
+        plan['sessions'][0]['completed'] = True
+        updated = study_plan.reschedule(plan, date(2030, 3, 3), 4)
+        self.assertEqual(updated['sessions'][0]['date'], '2030-03-02')
+        self.assertEqual([s['date'] for s in updated['sessions'][1:]], ['2030-03-03', '2030-03-04'])
+        text = study_plan.calendar_text(updated, '09:00', '-05:00', '7-test')
+        self.assertIn('DTSTART:20300302T140000Z', text)
+        self.assertIn('DTEND:20300302T144500Z', text)
+        self.assertTrue(all(len(line.encode('utf-8')) <= 75 for line in text.split('\r\n')))
+        with self.assertRaises(ValueError):
+            study_plan.reschedule(updated, date(2030, 3, 9), 1)
+        with self.assertRaises(ValueError):
+            study_plan.calendar_text(updated, '09:00', 'invalid', '7')
+
     def test_scope_surfaces_missing_citations(self):
         warnings = study.scope_warnings({'exam_id': 'midterm', 'topics': [{'name': 'Forces'}], 'problems': [{'number': 1}]})
         self.assertEqual(len(warnings), 2)

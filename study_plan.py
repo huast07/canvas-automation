@@ -3,6 +3,8 @@
 import argparse
 from datetime import date, datetime, time, timedelta
 import json
+import hashlib
+import re
 from pathlib import Path
 import sys
 
@@ -70,6 +72,78 @@ def topic_names(scope):
     return names
 
 
+def reschedule(plan, start, days):
+    if days < 1:
+        raise ValueError('Days must be positive')
+    exam = exam_time(plan['exam_at'])
+    occupied = {session['date'] for session in plan['sessions'] if session.get('completed')}
+    available = []
+    for offset in range(days):
+        day = start + timedelta(days=offset)
+        if day < exam.date() and day.isoformat() not in occupied:
+            available.append(day.isoformat())
+    pending = [session for session in plan['sessions'] if not session.get('completed')]
+    if len(available) < len(pending):
+        raise ValueError('Not enough available days before the exam to reschedule all incomplete sessions')
+    for session, day in zip(pending, available):
+        session['date'] = day
+    plan['rescheduled_at'] = now()
+    return plan
+
+
+def offset_timezone(value):
+    match = re.fullmatch(r'([+-])(\d{2}):(\d{2})', value)
+    if not match or int(match.group(2)) > 23 or int(match.group(3)) > 59:
+        raise ValueError('Offset must be in the form +HH:MM or -HH:MM')
+    from datetime import timezone
+    offset = timedelta(hours=int(match.group(2)), minutes=int(match.group(3)))
+    return timezone(offset if match.group(1) == '+' else -offset)
+
+
+def ical_escape(value):
+    return str(value).replace('\\', '\\\\').replace(';', r'\;').replace(',', r'\,').replace('\n', r'\n')
+
+
+def ical_folding(line):
+    # RFC 5545 lines are limited to 75 octets, without splitting UTF-8 characters.
+    pieces, current, size = [], '', 0
+    for char in line:
+        width = len(char.encode('utf-8'))
+        if size + width > 75:
+            pieces.append(current)
+            current, size = ' ', 1
+        current += char
+        size += width
+    pieces.append(current)
+    return '\r\n'.join(pieces)
+
+
+def calendar_text(plan, start_time, offset, calendar_id):
+    tz = offset_timezone(offset)
+    exam = exam_time(plan['exam_at'])
+    try:
+        at = time.fromisoformat(start_time)
+    except ValueError as exc:
+        raise ValueError('Start time must be HH:MM') from exc
+    if at.tzinfo is not None:
+        raise ValueError('Start time must not include a timezone')
+    from datetime import timezone
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Canvas Study Automation//Study Plan//EN']
+    for i, session in enumerate(plan['sessions']):
+        start = datetime.combine(date.fromisoformat(session['date']), at, tzinfo=tz)
+        end = start + timedelta(minutes=int(session['minutes']))
+        if end > exam:
+            raise ValueError('A session ends after the exam; adjust the plan or start time')
+        title = 'Study: ' + session.get('activity', 'Review')
+        lines += ['BEGIN:VEVENT', f'UID:{calendar_id}-{i}@canvas-study-local', 'DTSTAMP:' + stamp,
+                  'DTSTART:' + start.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ'),
+                  'DTEND:' + end.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ'),
+                  'SUMMARY:' + ical_escape(title), 'END:VEVENT']
+    lines.append('END:VCALENDAR')
+    return '\r\n'.join(ical_folding(line) for line in lines) + '\r\n'
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest='command', required=True)
@@ -80,6 +154,10 @@ def main():
     plan.add_argument('--minutes', type=int, required=True, help='Available minutes each day')
     cram = sub.add_parser('cram', help='Allocate a short session before an exam')
     cram.add_argument('course_id', type=int); cram.add_argument('--exam', required=True); cram.add_argument('--minutes', type=int, required=True)
+    move = sub.add_parser('reschedule', help='Move incomplete sessions to new dates')
+    move.add_argument('course_id', type=int); move.add_argument('--start', required=True); move.add_argument('--days', required=True, type=int)
+    export = sub.add_parser('export-ics', help='Export local calendar file; no events are created')
+    export.add_argument('course_id', type=int); export.add_argument('path', type=Path); export.add_argument('--time', required=True); export.add_argument('--offset', required=True)
     queue = sub.add_parser('review', help='List attempts marked for review')
     queue.add_argument('course_id', type=int); queue.add_argument('--all', action='store_true', help='Include items not yet due')
     args = p.parse_args()
@@ -92,6 +170,24 @@ def main():
                 print(f"{a.get('review_after', 'unscheduled')}  {a.get('topic', '')}  {a.get('id', '')}")
             if not pending:
                 print('No attempts are due for review. Use --all to include upcoming reviews.')
+            return 0
+        if args.command in ('reschedule', 'export-ics'):
+            path = root / 'study-plan.json'
+            saved = read_json(path, None)
+            if saved is None:
+                raise ValueError('Create a study plan first')
+            if args.command == 'reschedule':
+                start = date.fromisoformat(args.start)
+                if start < datetime.now(exam_time(saved['exam_at']).tzinfo).date():
+                    raise ValueError('Start date must not be in the past')
+                write_json(path, reschedule(saved, start, args.days))
+                print(f'Updated incomplete sessions in {path}.')
+            else:
+                calendar_id = str(args.course_id) + '-' + hashlib.sha256(str(saved.get('created_at', '')).encode()).hexdigest()[:12]
+                contents = calendar_text(saved, args.time, args.offset, calendar_id)
+                with args.path.open('x', encoding='utf-8', newline='') as output:
+                    output.write(contents)
+                print(f'Calendar file saved to {args.path}; import it manually if desired.')
             return 0
         exam = exam_time(args.exam)
         if exam <= datetime.now(exam.tzinfo):

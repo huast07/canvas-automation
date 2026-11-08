@@ -61,6 +61,13 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(quercus.download_course(client, 7, out), 0)
         self.assertEqual(client.downloads, 1)
         self.assertEqual(study.read_json(study.course_dir(7) / 'sync.json', {})['files']['12']['updated_at'], 'one')
+        self.assertEqual(quercus.download_course(client, 7, out, download_updates=True), 0)
+        self.assertEqual(client.downloads, 2)
+        record = study.read_json(study.course_dir(7) / 'sync.json', {})['files']['12']
+        self.assertEqual(record['updated_at'], 'two')
+        self.assertEqual(len(list(out.rglob('*.pdf'))), 2)
+        self.assertEqual(quercus.download_course(client, 7, out, download_updates=True), 0)
+        self.assertEqual(client.downloads, 2)
     def test_restricted_file_list_uses_module_items(self):
         class Restricted(FakeClient):
             def pages(self, path):

@@ -73,7 +73,7 @@ python3 quercus.py download COURSE_ID --preview
 python3 quercus.py download COURSE_ID
 ```
 
-Preview first. The filter selects documents whose name or folder contains lecture, lec, notes, or slides, and excludes names or folders indicating assignments, exams, tutorials, solutions, or syllabi. This heuristic can miss notes or select unrelated files. The tool uses the course Files API, or accessible module file items and same-course file links on lecture-named module pages when the course-wide Files list is restricted; module and page inspection can omit files. It does not download external links. Files go into `downloads/` by course and folder; add `--output PATH` to change the destination. Existing files are skipped, including when the remote file changes; previously downloaded files are not removed.
+Preview first. The filter selects documents whose name or folder contains lecture, lec, notes, or slides, and excludes names or folders indicating assignments, exams, tutorials, solutions, or syllabi. This heuristic can miss notes or select unrelated files. The tool uses the course Files API, or accessible module file items and same-course file links on lecture-named module pages when the course-wide Files list is restricted; module and page inspection can omit files. It does not download external links. Files go into `downloads/` by course and folder; add `--output PATH` to change the destination. Existing files are skipped. Changed remote files can be downloaded as separate copies with `--download-updates`; previously downloaded files are not removed.
 
 ### Summarize a course: `quercus-summary`
 
@@ -118,7 +118,7 @@ python3 quercus.py download COURSE_ID --include-pattern '📈'
 
 Choose patterns based on that course's actual titles, not the example. Use repeatable `--exclude-pattern` or `--exclude-id` options to remove false positives; exclusions take precedence. Patterns match titles and folder or module names. Regular expressions can match more than intended, so always inspect the preview. Module previews may not have file timestamps; changed status is checked on download.
 
-A sync records downloaded files in `study-data/COURSE_ID/sync.json`. It keeps existing files, including remotely changed files, and reports changes for manual review. Metadata counts for modules, pages, discussions and assignments are informational; this version does not download their contents or reliably detect missing numbered lectures. A completed sync is not proof of complete lecture coverage.
+A sync records downloaded files in `study-data/COURSE_ID/sync.json`. It keeps existing files and reports remote changes. Add `--download-updates` to save changed versions as separate files without overwriting local copies. Metadata counts for modules, pages, discussions and assignments are informational; this version does not download their contents or reliably detect missing numbered lectures. A completed sync is not proof of complete lecture coverage.
 
 Add a missing local document and inspect the course inventory:
 

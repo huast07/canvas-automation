@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone, date
 import getpass
+import hashlib
 from html.parser import HTMLParser
 import json
 import os
@@ -146,7 +147,7 @@ def page_file_links(body, course_id):
             yield int(match.group(2)), title
 
 
-def download_course(client, course_id, output, preview=False, include_ids=(), exclude_ids=(), include_patterns=(), exclude_patterns=()):
+def download_course(client, course_id, output, preview=False, include_ids=(), exclude_ids=(), include_patterns=(), exclude_patterns=(), download_updates=False):
     courses = list(client.pages('/api/v1/courses?per_page=100'))
     course = next((c for c in courses if str(c['id']) == str(course_id)), None)
     if not course:
@@ -243,7 +244,7 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
                 failed += 1
                 continue
         record = old_files.get(str(file['id']), {})
-        if module_fallback and preview and record.get('path'):
+        if record.get('path'):
             dest = Path(record['path'])
         changed = bool(record and file.get('updated_at') and record.get('updated_at') != file.get('updated_at'))
         status = ('changed remotely' if changed else 'downloaded') if dest.exists() else 'missing locally'
@@ -252,12 +253,17 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
             continue
         try:
             if dest.exists():
-                if changed:
-                    print(f'Changed remotely; kept local copy: {dest}')
+                if changed and download_updates:
+                    version = hashlib.sha256(str(file.get('updated_at')).encode()).hexdigest()[:10]
+                    dest = dest.with_name(f'{dest.stem} [update {version}]{dest.suffix}')
+                    if dest.exists():
+                        print(f'Update already exists; not overwriting: {dest}')
+                        skipped += 1
+                        continue
                 else:
-                    print(f'Skip: {dest}')
-                skipped += 1
-                continue
+                    print(f'Changed remotely; kept local copy: {dest}' if changed else f'Skip: {dest}')
+                    skipped += 1
+                    continue
             dest.parent.mkdir(parents=True, exist_ok=True)
             with client.open_download(file['url']) as response:
                 with dest.open('xb') as out:
@@ -338,6 +344,7 @@ def main():
     download.add_argument('--preview', action='store_true', help='Show matching files without downloading')
     download.add_argument('--include-id', type=int, action='append', default=[], help='Also include this file ID')
     download.add_argument('--exclude-id', type=int, action='append', default=[], help='Exclude this file ID')
+    download.add_argument('--download-updates', action='store_true', help='Save remotely changed files as separate copies')
     download.add_argument('--include-pattern', action='append', default=[], help='Include titles or folders matching this case-insensitive regex')
     download.add_argument('--exclude-pattern', action='append', default=[], help='Exclude titles or folders matching this case-insensitive regex')
     due = sub.add_parser('due', help='Show upcoming dated assignments')
@@ -360,7 +367,7 @@ def main():
                 print(f"{course['id']}\t{course.get('course_code', '')}\t{course.get('name', '')}")
             return 0
         if args.command == 'download':
-            return download_course(client, args.course_id, args.output, args.preview, args.include_id, args.exclude_id, args.include_pattern, args.exclude_pattern)
+            return download_course(client, args.course_id, args.output, args.preview, args.include_id, args.exclude_id, args.include_pattern, args.exclude_pattern, args.download_updates)
         if args.command == 'context':
             return save_course_context(client, args.course_id, args.start, args.end)
         if args.command == 'syllabus':

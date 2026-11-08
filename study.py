@@ -105,6 +105,24 @@ def extract(path):
     raise ValueError('Unsupported for built-in extraction; use a PDF/OCR or document tool')
 
 
+def schedule_review(record, outcome, current):
+    """Use an editable 1/3/7 day heuristic, not an assessment of mastery."""
+    stage = int(record.get('review_stage', 0))
+    if outcome == 'retry':
+        stage = 0
+        days = 1
+    elif outcome == 'correct':
+        stage = min(stage + 1, 2)
+        days = (1, 3, 7)[stage]
+    else:
+        raise ValueError('Review outcome must be correct or retry')
+    record['needs_review'] = True
+    record['review_stage'] = stage
+    record['review_after'] = (current + timedelta(days=days)).isoformat()
+    record['last_review_outcome'] = outcome
+    return record
+
+
 def index_sources(course):
     root = course_dir(course)
     imports = read_json(root / 'imports.json', [])
@@ -175,6 +193,8 @@ def main():
     attempt.add_argument('course_id', type=int); attempt.add_argument('path', type=Path)
     update = sub.add_parser('update-attempt', help='Apply corrections from JSON to an attempt')
     update.add_argument('course_id', type=int); update.add_argument('attempt_id'); update.add_argument('path', type=Path)
+    review = sub.add_parser('review-attempt', help='Record a review and schedule another')
+    review.add_argument('course_id', type=int); review.add_argument('attempt_id'); review.add_argument('--outcome', choices=('correct', 'retry'), required=True)
     remove = sub.add_parser('remove-attempt', help='Delete one saved attempt')
     remove.add_argument('course_id', type=int); remove.add_argument('attempt_id')
     export = sub.add_parser('export', help='Export course records as JSON')
@@ -240,7 +260,7 @@ def main():
             records.append(data)
             write_json(path, records)
             print(f'Attempt {data["id"]} saved locally.')
-        elif args.command in ('update-attempt', 'remove-attempt'):
+        elif args.command in ('update-attempt', 'remove-attempt', 'review-attempt'):
             path = course_dir(args.course_id) / 'attempts.json'
             records = read_json(path, [])
             index = next((i for i, record in enumerate(records) if record.get('id') == args.attempt_id), None)
@@ -249,6 +269,9 @@ def main():
             if args.command == 'remove-attempt':
                 records.pop(index)
                 print('Attempt deleted.')
+            elif args.command == 'review-attempt':
+                schedule_review(records[index], args.outcome, datetime.now(timezone.utc))
+                print(f'Next suggested review: {records[index]["review_after"]}. Edit the record to change it.')
             else:
                 changes = json.loads(args.path.read_text(encoding='utf-8'))
                 if not isinstance(changes, dict) or any(k in changes for k in ('id', 'recorded_at')):

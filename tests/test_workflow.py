@@ -87,6 +87,19 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(client.downloads, 1)
         self.assertTrue(any(p.name == 'slides [44].pdf' for p in (self.base / 'out').rglob('*.pdf')))
 
+    def test_context_reports_partial_results_without_aborting(self):
+        class ContextClient:
+            def open(self, url):
+                return io.BytesIO(json.dumps({'syllabus_body': 'Course outline'}).encode())
+            def pages(self, url):
+                raise HTTPError(url, 403, 'Forbidden', {}, None)
+        self.assertEqual(quercus.save_course_context(ContextClient(), 7, '2030-01-01', '2030-04-01'), 1)
+        context = study.read_json(study.course_dir(7) / 'course-context.json', {})
+        self.assertEqual(context['sources']['syllabus']['body'], 'Course outline')
+        self.assertTrue(any('Announcements unavailable' in gap for gap in context['gaps']))
+        with self.assertRaises(ValueError):
+            quercus.save_course_context(ContextClient(), 7, '2030-04-01', '2030-01-01')
+
     def test_page_links_only_include_same_course_canvas_files(self):
         body = '<a href="/courses/7/files/44?verifier=secret">Skeleton Notes</a><a href="https://evil.test/courses/7/files/45">Notes</a><a href="/courses/8/files/46">Notes</a>'
         self.assertEqual(list(quercus.page_file_links(body, 7)), [(44, 'Skeleton Notes')])

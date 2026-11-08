@@ -28,6 +28,16 @@ class PlanningTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             study_plan.exam_time('2030-03-05T12:00')
 
+    def test_review_spacing_can_reset_after_a_mistake(self):
+        today = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        record = {'needs_review': True}
+        study.schedule_review(record, 'correct', today)
+        self.assertEqual(record['review_after'], (today + timedelta(days=3)).isoformat())
+        study.schedule_review(record, 'correct', today)
+        self.assertEqual(record['review_after'], (today + timedelta(days=7)).isoformat())
+        study.schedule_review(record, 'retry', today)
+        self.assertEqual(record['review_after'], (today + timedelta(days=1)).isoformat())
+
     def test_problem_candidates_keep_page_and_require_review(self):
         result = catalog.candidates('[page 2] Question 1: Explain force\nGive an example.\n[page 3] Problem 2: Solve x.', 'exam.pdf')
         self.assertEqual([x['page'] for x in result], [2, 3])

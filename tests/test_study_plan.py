@@ -18,6 +18,15 @@ class PlanningTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             study_plan.cram_blocks(0)
 
+    def test_cram_priority_uses_stated_weights_and_preserves_unknown(self):
+        scope = {'topics': [{'name': 'Earlier', 'status': 'confirmed', 'weight': 'approximately 30%'},
+                            {'name': 'Recent', 'status': 'confirmed', 'weight': 'approximately 70%'},
+                            {'name': 'Maybe', 'status': 'inferred', 'weight': '99%'},
+                            {'name': 'Outside', 'status': 'excluded'}]}
+        result = study_plan.prioritize_topics(scope)
+        self.assertEqual([x['name'] for x in result], ['Recent', 'Earlier', 'Maybe'])
+        self.assertEqual(result[0]['stated_weight'], 70)
+
     def test_schedule_respects_exam_and_time_budget(self):
         exam = datetime(2030, 3, 5, 12, tzinfo=timezone.utc)
         plan = study_plan.build_plan(exam, 45, date(2030, 3, 2), 20, ['One', 'Two'])

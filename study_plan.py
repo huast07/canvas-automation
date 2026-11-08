@@ -72,6 +72,30 @@ def topic_names(scope):
     return names
 
 
+def prioritize_topics(scope):
+    """Use only explicit scope status and stated weights; never infer exam frequency."""
+    topics = []
+    for item in scope.get('topics', []):
+        if isinstance(item, str):
+            topics.append({'name': item, 'status': 'unknown', 'stated_weight': None})
+        elif isinstance(item, dict):
+            name = item.get('name') or item.get('topic')
+            if not name or item.get('status') == 'excluded':
+                continue
+            status = item.get('status', 'unknown')
+            weight = item.get('weight')
+            if isinstance(weight, str):
+                match = re.search(r'(\d+(?:\.\d+)?)\s*%', weight)
+                weight = float(match.group(1)) if match else None
+            elif type(weight) not in (int, float):
+                weight = None
+            if weight is not None and not 0 <= weight <= 100:
+                weight = None
+            topics.append({'name': name, 'status': status, 'stated_weight': weight, 'source': item.get('source')})
+    topics.sort(key=lambda x: (x['status'] != 'confirmed', -(x['stated_weight'] if x['stated_weight'] is not None else -1)))
+    return topics
+
+
 def reschedule(plan, start, days):
     if days < 1:
         raise ValueError('Days must be positive')
@@ -203,7 +227,7 @@ def main():
             if args.minutes > available:
                 raise ValueError(f'Only {available} minutes remain before the exam')
             result = {'created_at': now(), 'exam_at': exam.isoformat(), 'blocks': cram_blocks(args.minutes),
-                      'scope_topics': topic_names(scope), 'limitations': ['Prioritize confirmed scope; review missing and uncertain material.', 'A short session does not cover the whole course.']}
+                      'scope_topics': prioritize_topics(scope), 'limitations': ['Topic ordering uses only recorded status and explicit weights; review the original sources.', 'A short session does not cover the whole course.'] + list(scope.get('uncertainties') or [])}
             print(json.dumps(result, indent=2))
         else:
             start = date.fromisoformat(args.start)

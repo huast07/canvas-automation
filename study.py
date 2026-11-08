@@ -162,6 +162,8 @@ def main():
     imp = sub.add_parser('import', help='Copy a local document into a course')
     imp.add_argument('course_id', type=int); imp.add_argument('type', choices=TYPES); imp.add_argument('path')
     inv = sub.add_parser('inventory'); inv.add_argument('course_id', type=int)
+    rem = sub.add_parser('remove-import', help='Remove one imported local copy by full SHA-256')
+    rem.add_argument('course_id', type=int); rem.add_argument('sha256')
     ext = sub.add_parser('extract'); ext.add_argument('path', type=Path)
     index = sub.add_parser('index', help='Extract and index available course sources')
     index.add_argument('course_id', type=int)
@@ -171,12 +173,34 @@ def main():
     check.add_argument('course_id', type=int)
     attempt = sub.add_parser('record-attempt', help='Save an attempt from a local JSON file')
     attempt.add_argument('course_id', type=int); attempt.add_argument('path', type=Path)
+    update = sub.add_parser('update-attempt', help='Apply corrections from JSON to an attempt')
+    update.add_argument('course_id', type=int); update.add_argument('attempt_id'); update.add_argument('path', type=Path)
+    remove = sub.add_parser('remove-attempt', help='Delete one saved attempt')
+    remove.add_argument('course_id', type=int); remove.add_argument('attempt_id')
+    export = sub.add_parser('export', help='Export course records as JSON')
+    export.add_argument('course_id', type=int); export.add_argument('path', type=Path)
+
     args = parser.parse_args()
     try:
         if args.command == 'import':
             import_document(args.course_id, args.type, args.path)
         elif args.command == 'inventory':
             inventory(args.course_id)
+        elif args.command == 'remove-import':
+            root = course_dir(args.course_id)
+            manifest_path = root / 'imports.json'
+            records = read_json(manifest_path, [])
+            entry = next((item for item in records if item.get('sha256') == args.sha256), None)
+            if entry is None:
+                raise ValueError('Import hash not found')
+            path = Path(entry['path'])
+            allowed = (root / 'documents').resolve()
+            if allowed not in path.resolve().parents:
+                raise ValueError('Imported file is outside the course documents directory')
+            path.unlink(missing_ok=True)
+            records.remove(entry)
+            write_json(manifest_path, records)
+            print('Imported copy removed. Re-run index to refresh extracted source records.')
         elif args.command == 'index':
             return index_sources(args.course_id)
         elif args.command == 'extract':
@@ -199,7 +223,10 @@ def main():
             if missing:
                 print('Required first: ' + ', '.join(missing))
                 return 1
-            print('Prerequisites recorded. Check sync and scope freshness and completeness before practice.')
+            scope = read_json(root / 'exam-scope.json', {})
+            print('Exam:', scope.get('exam_id') or scope.get('exam') or 'not specified')
+            print('Scope mapped:', scope.get('mapped_at', 'unknown'))
+            print('Prerequisites recorded. Check the selected exam, sync and scope freshness and completeness before practice.')
         elif args.command == 'record-attempt':
             data = json.loads(args.path.read_text(encoding='utf-8'))
             if not isinstance(data, dict) or not data.get('topic'):
@@ -208,9 +235,35 @@ def main():
             records = read_json(path, [])
             data['id'] = uuid.uuid4().hex[:12]
             data['recorded_at'] = now()
+            if data.get('needs_review') is True and not data.get('review_after'):
+                data['review_after'] = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
             records.append(data)
             write_json(path, records)
-            print('Attempt saved locally.')
+            print(f'Attempt {data["id"]} saved locally.')
+        elif args.command in ('update-attempt', 'remove-attempt'):
+            path = course_dir(args.course_id) / 'attempts.json'
+            records = read_json(path, [])
+            index = next((i for i, record in enumerate(records) if record.get('id') == args.attempt_id), None)
+            if index is None:
+                raise ValueError('Attempt ID not found')
+            if args.command == 'remove-attempt':
+                records.pop(index)
+                print('Attempt deleted.')
+            else:
+                changes = json.loads(args.path.read_text(encoding='utf-8'))
+                if not isinstance(changes, dict) or any(k in changes for k in ('id', 'recorded_at')):
+                    raise ValueError('Corrections must be an object and cannot change id or recorded_at')
+                records[index].update(changes)
+                records[index]['updated_at'] = now()
+                print('Attempt updated.')
+            write_json(path, records)
+        elif args.command == 'export':
+            root = course_dir(args.course_id)
+            bundle = {name: read_json(root / (name + '.json'), None) for name in ('imports', 'sources', 'sync', 'exam-scope', 'study-plan', 'attempts')}
+            if args.path.exists():
+                raise ValueError('Export destination already exists')
+            write_json(args.path, {'exported_at': now(), 'course_id': args.course_id, 'records': bundle})
+            print('Exported local records; downloaded source files are not included.')
     except (ValueError, OSError, zipfile.BadZipFile, ElementTree.ParseError, json.JSONDecodeError) as exc:
         print(f'Error: {exc}', file=sys.stderr)
         return 1

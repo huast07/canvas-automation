@@ -162,3 +162,11 @@ python3 study.py index COURSE_ID
 ```
 
 Use your own course dates. Canvas defaults to a short announcement window, so the command requires an explicit range. Course context and extracted text are stored under the ignored `study-data/` directory. The source index reports missing files, extraction errors and pages requiring OCR; it does not automatically understand the documents. Ask `$quercus-exam-scope` to inspect the sources and produce a reviewed, cited scope and past-problem catalog. `$quercus-summary` uses the same index. Codex generates the interpretation and practice in conversation; source text may be transmitted to the model service used for that conversation, so share only materials you are permitted to use and are comfortable processing there.
+
+### Past problems and review records
+
+After importing past exams as `past-exam` and running `study.py index`, run `python3 catalog.py COURSE_ID` to create a draft `problem-candidates.json`. It finds some numbered questions, but boundaries, pages, diagrams and categories must be checked against the original. It may miss or split questions; the scope skill reviews the draft rather than treating it as an authoritative catalog.
+
+To record a practice attempt, create a local JSON file containing, for example, `{"topic":"Forces","needs_review":true,"feedback":"Review sign conventions"}`, then run `python3 study.py record-attempt COURSE_ID /path/to/attempt.json`. It returns an ID and defaults the review time to the next day. `python3 study_plan.py review COURSE_ID` lists due attempts; add `--all` to see upcoming ones. Use `python3 study.py update-attempt COURSE_ID ATTEMPT_ID corrections.json` to update fields or `python3 study.py remove-attempt COURSE_ID ATTEMPT_ID` to delete one. These records are local and should only be saved with the student's consent.
+
+`python3 study.py export COURSE_ID /path/to/export.json` exports local record metadata, not the downloaded documents. To remove an imported copy, find its SHA-256 in `study-data/COURSE_ID/imports.json` and run `python3 study.py remove-import COURSE_ID FULL_SHA256`. Re-run indexing after removing a file. Extracted text and any previously made exports may remain; remove the course's `study-data/` and `downloads/` folders separately if you want to delete all local copies.

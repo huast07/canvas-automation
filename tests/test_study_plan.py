@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import study
+import catalog
 import study_plan
 
 
@@ -26,6 +27,12 @@ class PlanningTests(unittest.TestCase):
             study_plan.build_plan(exam, 45, date(2030, 3, 5), 3, ['One'])
         with self.assertRaises(ValueError):
             study_plan.exam_time('2030-03-05T12:00')
+
+    def test_problem_candidates_keep_page_and_require_review(self):
+        result = catalog.candidates('[page 2] Question 1: Explain force\nGive an example.\n[page 3] Problem 2: Solve x.', 'exam.pdf')
+        self.assertEqual([x['page'] for x in result], [2, 3])
+        self.assertEqual(result[0]['confidence'], 'unreviewed')
+        self.assertIn('Give an example', result[0]['text'])
 
     def test_source_index_reports_missing_and_available(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -81,17 +81,17 @@ def main():
     cram = sub.add_parser('cram', help='Allocate a short session before an exam')
     cram.add_argument('course_id', type=int); cram.add_argument('--exam', required=True); cram.add_argument('--minutes', type=int, required=True)
     queue = sub.add_parser('review', help='List attempts marked for review')
-    queue.add_argument('course_id', type=int)
+    queue.add_argument('course_id', type=int); queue.add_argument('--all', action='store_true', help='Include items not yet due')
     args = p.parse_args()
     try:
         root = course_dir(args.course_id)
         if args.command == 'review':
             records = read_json(root / 'attempts.json', [])
-            pending = [a for a in records if a.get('needs_review') is True]
+            pending = [a for a in records if a.get('needs_review') is True and (args.all or not a.get('review_after') or exam_time(a['review_after']) <= datetime.now(timezone.utc))]
             for a in pending:
-                print(f"{a.get('recorded_at', '')}  {a.get('topic', '')}  {a.get('id', '')}")
+                print(f"{a.get('review_after', 'unscheduled')}  {a.get('topic', '')}  {a.get('id', '')}")
             if not pending:
-                print('No attempts are marked for review.')
+                print('No attempts are due for review. Use --all to include upcoming reviews.')
             return 0
         exam = exam_time(args.exam)
         if exam <= datetime.now(exam.tzinfo):

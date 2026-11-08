@@ -44,8 +44,8 @@ The Canvas API and permissions vary by institution; the workflows have not been 
 ## Installation
 
 ```sh
-git clone https://github.com/huast07/quercus-automation.git
-cd quercus-automation
+git clone https://github.com/huast07/canvas-automation.git
+cd canvas-automation
 python3 quercus.py --help
 ```
 

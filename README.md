@@ -1,4 +1,4 @@
-# Quercus automation
+# Quercus (Canvas) automation
 
 A local Python tool and five Codex skills for working with University of Toronto Quercus courses. The tool lists courses, previews and downloads likely lecture notes, and retrieves assignment and syllabus information. The skills guide Codex through those tasks, course summaries, and exam preparation.
 

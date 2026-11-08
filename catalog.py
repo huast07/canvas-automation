@@ -18,7 +18,7 @@ def candidates(content, source):
         if marker:
             page = int(marker.group(1))
             line = marker.group(2)
-        match = re.match(r'^\s*(?:question|problem|q)\s*(\d+[a-z]?)\s*[:.)-]?\s*(.*)$|^\s*(\d{1,2})[.)]\s+(.+)$', line, re.I)
+        match = re.match(r'^\s*(?:question|problem|q)\s*(\d+[a-z]?)\s*[:.)-]?\s*(.*)$|^\s*(\d{1,2})[.)](?=\s|[A-Z])\s*(.+)$', line, re.I)
         if match:
             if current:
                 items.append(current)

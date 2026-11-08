@@ -49,6 +49,8 @@ class PlanningTests(unittest.TestCase):
         self.assertEqual([x['page'] for x in result], [2, 3])
         self.assertEqual(result[0]['confidence'], 'unreviewed')
         self.assertIn('Give an example', result[0]['text'])
+        compact = catalog.candidates('[page 1] 2.First question\n[page 2] 3.Second question', 'exam.pdf')
+        self.assertEqual([x['number'] for x in compact], ['2', '3'])
 
     def test_source_index_reports_missing_and_available(self):
         with tempfile.TemporaryDirectory() as temp:

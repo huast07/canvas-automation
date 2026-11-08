@@ -6,7 +6,7 @@ A local Python tool and Codex skills for working with Canvas courses. Designed b
 
 This illustration shows how a student might call the exam-preparation skills and receive course-specific guidance. The outputs are examples and depend on the materials available in Canvas.
 
-![Example Codex conversation showing exam-preparation skills, a course inventory, a draft exam scope, and a practice question](assets/sample-codex-conversation.png)
+![Example Codex conversation showing lecture-note sync, exam scope and past-question mapping, a cram session, and a mock exam](assets/sample-codex-conversation.png)
 
 ## Requirements
 

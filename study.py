@@ -105,6 +105,36 @@ def extract(path):
     raise ValueError('Unsupported for built-in extraction; use a PDF/OCR or document tool')
 
 
+def index_sources(course):
+    root = course_dir(course)
+    imports = read_json(root / 'imports.json', [])
+    sync = read_json(root / 'sync.json', {})
+    sources = [{'path': x.get('path', ''), 'type': x.get('type', 'other'), 'origin': 'import'} for x in imports]
+    sources += [{'path': x.get('path', ''), 'type': 'lecture', 'origin': f'Canvas file {file_id}'} for file_id, x in sync.get('files', {}).items()]
+    results = []
+    for source in sources:
+        path = Path(source['path'])
+        item = dict(source)
+        try:
+            if not path.is_file():
+                raise ValueError('File is missing')
+            content, quality = extract(path)
+            checksum = digest(path)
+            output = root / 'extracted' / f'{checksum}.json'
+            write_json(output, {'source': str(path), 'sha256': checksum, 'quality': quality, 'text': content})
+            item.update({'status': 'extracted', 'sha256': checksum, 'extracted_path': str(output), 'quality': quality})
+            if 'OCR required' in content:
+                item['status'] = 'partial: OCR required'
+        except (OSError, ValueError, KeyError, UnicodeError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
+            item.update({'status': 'unreadable', 'reason': str(exc)})
+        results.append(item)
+    write_json(root / 'sources.json', {'indexed_at': now(), 'sources': results})
+    for item in results:
+        print(f"{item['status']}: {item['path']}")
+    print('Extraction may omit equations, figures and tables; verify against originals.')
+    return 1 if any(x['status'] != 'extracted' for x in results) else 0
+
+
 def inventory(course):
     root = course_dir(course)
     print('Imported sources:')
@@ -133,6 +163,8 @@ def main():
     imp.add_argument('course_id', type=int); imp.add_argument('type', choices=TYPES); imp.add_argument('path')
     inv = sub.add_parser('inventory'); inv.add_argument('course_id', type=int)
     ext = sub.add_parser('extract'); ext.add_argument('path', type=Path)
+    index = sub.add_parser('index', help='Extract and index available course sources')
+    index.add_argument('course_id', type=int)
     scope = sub.add_parser('save-scope', help='Save a reviewed exam scope JSON document')
     scope.add_argument('course_id', type=int); scope.add_argument('path', type=Path)
     check = sub.add_parser('check-ready', help='Check prerequisites for the tutor')
@@ -145,6 +177,8 @@ def main():
             import_document(args.course_id, args.type, args.path)
         elif args.command == 'inventory':
             inventory(args.course_id)
+        elif args.command == 'index':
+            return index_sources(args.course_id)
         elif args.command == 'extract':
             content, quality = extract(args.path)
             print(f'Extraction: {quality}; check diagrams, equations, and missing text.', file=sys.stderr)

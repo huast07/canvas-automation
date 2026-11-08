@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -25,6 +26,22 @@ class PlanningTests(unittest.TestCase):
             study_plan.build_plan(exam, 45, date(2030, 3, 5), 3, ['One'])
         with self.assertRaises(ValueError):
             study_plan.exam_time('2030-03-05T12:00')
+
+    def test_source_index_reports_missing_and_available(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            source = base / 'lecture.txt'
+            source.write_text('A lecture', encoding='utf-8')
+            with patch.object(study, 'ROOT', base / 'store'):
+                study.import_document(42, 'lecture', source)
+                self.assertEqual(study.index_sources(42), 0)
+                manifest = study.read_json(study.course_dir(42) / 'sources.json', {})
+                self.assertEqual(manifest['sources'][0]['status'], 'extracted')
+                stored = Path(manifest['sources'][0]['path'])
+                stored.unlink()
+                self.assertEqual(study.index_sources(42), 1)
+                manifest = study.read_json(study.course_dir(42) / 'sources.json', {})
+                self.assertEqual(manifest['sources'][0]['status'], 'unreadable')
 
     def test_pdf_empty_page_reports_ocr(self):
         try:

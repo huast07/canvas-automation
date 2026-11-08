@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Download files available to your account through the Canvas API."""
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 import getpass
 from html.parser import HTMLParser
 import json
@@ -152,12 +152,14 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
     if not course:
         raise ValueError('Course not found in your course list')
     root = output / f"{safe_name(course.get('name', 'course'))} [{course_id}]"
+    gaps = []
     try:
         folders = {f['id']: f for f in client.pages(f'/api/v1/courses/{course_id}/folders?per_page=100')}
     except HTTPError as exc:
         if exc.code != 403:
             raise
         print('Folder listing is restricted; folder names may be unavailable.', file=sys.stderr)
+        gaps.append({'status': 'inaccessible', 'label': 'Course folder list'})
         folders = {}
     try:
         files = list(client.pages(f'/api/v1/courses/{course_id}/files?per_page=100'))
@@ -166,6 +168,7 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
         if exc.code != 403:
             raise
         print('Course file listing is restricted; checking accessible module items instead.', file=sys.stderr)
+        gaps.append({'status': 'inaccessible', 'label': 'Course-wide file list; module fallback may be incomplete'})
         module_fallback = True
         files_by_id = {}
         modules = list(client.pages(f'/api/v1/courses/{course_id}/modules?per_page=100'))
@@ -187,8 +190,10 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
                                                                  '_module': module.get('name', ''), '_page': item.get('title', '')})
                         except (HTTPError, URLError, ValueError):
                             print(f'Lecture page unavailable in module {module["id"]}.', file=sys.stderr)
+                            gaps.append({'status': 'inaccessible', 'label': f'Lecture page in module {module["id"]}'})
             except HTTPError as module_error:
                 print(f'Module {module["id"]} unavailable (HTTP {module_error.code}).', file=sys.stderr)
+                gaps.append({'status': 'inaccessible', 'label': f'Module {module["id"]}'})
         files = list(files_by_id.values())
         print('Module listing may omit course files; check for missing lecture notes.')
     downloaded = skipped = failed = 0
@@ -270,9 +275,41 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
             print(f'Failed: {dest} ({type(exc).__name__})', file=sys.stderr)
             failed += 1
     if not preview:
-        write_json(sync_path, {'completed_at': now(), 'course_id': course_id, 'files': records, 'failures': failed, 'matched': len(matches)})
+        selected_ids = {f['id'] for f in matches}
+        for item in files:
+            record = records.get(str(item['id']))
+            status = 'available locally' if record and Path(record['path']).is_file() else ('not downloaded' if item['id'] in selected_ids else 'not selected')
+            gaps.append({'id': item['id'], 'status': status, 'label': item.get('display_name') or item.get('filename') or 'File'})
+        write_json(sync_path, {'completed_at': now(), 'course_id': course_id, 'files': records, 'failures': failed, 'matched': len(matches), 'inventory': gaps})
     print(f'Finished: {downloaded} downloaded, {skipped} skipped, {failed} failed. Filename matching may miss lectures.')
     return 1 if failed else 0
+
+
+def save_course_context(client, course_id, start_date, end_date):
+    # Explicit range avoids silently accepting Canvas's short default window.
+    if date.fromisoformat(start_date) > date.fromisoformat(end_date):
+        raise ValueError('Start date must be before end date')
+    results = {'fetched_at': now(), 'announcement_range': [start_date, end_date], 'sources': {}, 'gaps': []}
+    try:
+        with client.open(f'{BASE}/api/v1/courses/{course_id}?include%5B%5D=syllabus_body') as response:
+            course = json.load(response)
+        results['sources']['syllabus'] = {'body': course.get('syllabus_body') or '', 'url': f'{BASE}/courses/{course_id}/assignments/syllabus'}
+        if not course.get('syllabus_body'):
+            results['gaps'].append('No syllabus body returned; it may be linked as a separate document.')
+    except (HTTPError, URLError, ValueError) as exc:
+        results['gaps'].append('Syllabus unavailable: ' + type(exc).__name__)
+    try:
+        path = f'/api/v1/announcements?context_codes%5B%5D=course_{course_id}&start_date={start_date}&end_date={end_date}&per_page=100'
+        announcements = list(client.pages(path))
+        results['sources']['announcements'] = [{key: item.get(key) for key in ('id', 'title', 'message', 'posted_at', 'html_url')} for item in announcements]
+    except (HTTPError, URLError, ValueError) as exc:
+        results['gaps'].append('Announcements unavailable: ' + type(exc).__name__)
+    path = course_dir(course_id) / 'course-context.json'
+    write_json(path, results)
+    print(f'Saved course context to {path}. Announcement coverage: {start_date} to {end_date}.')
+    for gap in results['gaps']:
+        print('Gap:', gap)
+    return 1 if results['gaps'] else 0
 
 
 def token_from_env_file(path):
@@ -305,6 +342,10 @@ def main():
     download.add_argument('--exclude-pattern', action='append', default=[], help='Exclude titles or folders matching this case-insensitive regex')
     due = sub.add_parser('due', help='Show upcoming dated assignments')
     due.add_argument('course_id', type=int)
+    context = sub.add_parser('context', help='Save syllabus and announcements locally')
+    context.add_argument('course_id', type=int)
+    context.add_argument('--start', required=True, help='Earliest announcement date YYYY-MM-DD')
+    context.add_argument('--end', required=True, help='Latest announcement date YYYY-MM-DD')
     syllabus = sub.add_parser('syllabus', help='Show course syllabus HTML')
     syllabus.add_argument('course_id', type=int)
     args = parser.parse_args()
@@ -320,6 +361,8 @@ def main():
             return 0
         if args.command == 'download':
             return download_course(client, args.course_id, args.output, args.preview, args.include_id, args.exclude_id, args.include_pattern, args.exclude_pattern)
+        if args.command == 'context':
+            return save_course_context(client, args.course_id, args.start, args.end)
         if args.command == 'syllabus':
             with client.open(f'{BASE}/api/v1/courses/{args.course_id}?include%5B%5D=syllabus_body') as response:
                 course = json.load(response)

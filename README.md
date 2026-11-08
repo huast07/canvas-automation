@@ -151,3 +151,14 @@ python3 study_plan.py review COURSE_ID
 ```
 
 Use your own dates and timezone offset. `create` uses consecutive dates up to the exam, so edit `study-data/COURSE_ID/study-plan.json` to match your actual availability. It does not schedule notifications. Mark recorded attempts with `needs_review: true` to include them in the review queue; edit or delete local records to correct or remove them. These plans are suggestions, not predictions of performance.
+
+### Course sources and scope
+
+Capture the course syllabus and announcements for the relevant date range, then index locally downloaded and imported materials:
+
+```sh
+python3 quercus.py context COURSE_ID --start 2026-09-01 --end 2026-12-31
+python3 study.py index COURSE_ID
+```
+
+Use your own course dates. Canvas defaults to a short announcement window, so the command requires an explicit range. Course context and extracted text are stored under the ignored `study-data/` directory. The source index reports missing files, extraction errors and pages requiring OCR; it does not automatically understand the documents. Ask `$quercus-exam-scope` to inspect the sources and produce a reviewed, cited scope and past-problem catalog. `$quercus-summary` uses the same index. Codex generates the interpretation and practice in conversation; source text may be transmitted to the model service used for that conversation, so share only materials you are permitted to use and are comfortable processing there.

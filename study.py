@@ -4,6 +4,8 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+from datetime import timedelta
+import uuid
 from pathlib import Path
 import re
 import shutil
@@ -73,6 +75,20 @@ def extract(path):
     suffix = path.suffix.lower()
     if suffix in ('.txt', '.md'):
         return path.read_text(encoding='utf-8'), 'text file'
+    if suffix == '.pdf':
+        try:
+            from pypdf import PdfReader
+        except ImportError as exc:
+            raise ValueError('PDF extraction requires pypdf: python3 -m pip install -r requirements.txt') from exc
+        try:
+            reader = PdfReader(str(path))
+            chunks = []
+            for number, page in enumerate(reader.pages, 1):
+                text = page.extract_text() or ''
+                chunks.append(f'[page {number}] ' + (text if text.strip() else '[No extractable text; image-only page or OCR required]'))
+            return '\n'.join(chunks), 'PDF page markers; image-only pages need OCR'
+        except Exception as exc:
+            raise ValueError(f'Could not extract PDF ({type(exc).__name__})') from exc
     if suffix in ('.docx', '.pptx'):
         with zipfile.ZipFile(path) as archive:
             if suffix == '.docx':
@@ -98,6 +114,13 @@ def inventory(course):
         print(f"  {item['type']}: {path} ({'available' if path.is_file() else 'missing'})")
     sync = read_json(root / 'sync.json', None)
     print('Lecture sync:', sync.get('completed_at') if sync else 'not yet recorded')
+    if sync:
+        for file_id, record in sync.get('files', {}).items():
+            path = Path(record['path'])
+            print(f"  Canvas file {file_id}: {path} ({'available' if path.is_file() else 'missing'})")
+        print(f"  Sync failures: {sync.get('failures', 'unknown')}; selected: {sync.get('matched', 'unknown')}")
+        for entry in sync.get('inventory', []):
+            print(f"  {entry.get('status', 'unknown')}: {entry.get('label', '')}")
     print('Exam scope:', 'mapped' if (root / 'exam-scope.json').exists() else 'not yet mapped')
     if not items:
         print('  No imported documents. Add missing notes, scope documents, or past exams.')
@@ -136,6 +159,9 @@ def main():
         elif args.command == 'check-ready':
             root = course_dir(args.course_id)
             missing = [label for path, label in [(root / 'sync.json', 'lecture sync'), (root / 'exam-scope.json', 'exam scope mapping')] if not path.exists()]
+            sync = read_json(root / 'sync.json', {})
+            if sync and (sync.get('matched') == 0 or sync.get('failures', 0)):
+                print('Warning: lecture sync selected no notes or had failures; review source gaps.')
             if missing:
                 print('Required first: ' + ', '.join(missing))
                 return 1
@@ -146,6 +172,7 @@ def main():
                 raise ValueError('Attempt JSON needs a topic')
             path = course_dir(args.course_id) / 'attempts.json'
             records = read_json(path, [])
+            data['id'] = uuid.uuid4().hex[:12]
             data['recorded_at'] = now()
             records.append(data)
             write_json(path, records)

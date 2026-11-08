@@ -1,0 +1,2 @@
+# PDF text extraction. Scanned/image-only PDFs still need separate OCR.
+pypdf>=4,<7

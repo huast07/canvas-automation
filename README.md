@@ -137,3 +137,17 @@ Run the local tests with `python3 -m unittest discover -s tests -v`. The skill w
 ### macOS certificate verification error
 
 If Python reports `CERTIFICATE_VERIFY_FAILED`, check its certificate setup. Python.org installations on macOS include an **Install Certificates.command** in `/Applications/Python 3.x/`. Alternatively, when the Python `certifi` package is already installed and Python has no configured default certificate store, this tool uses its CA bundle automatically. If you manage a custom trust store, set `SSL_CERT_FILE` to its CA bundle. Keep certificate verification enabled.
+
+### PDF extraction and local study plans
+
+For PDF text extraction install the optional dependency with `python3 -m pip install -r requirements.txt`. `python3 study.py extract PATH` labels PDF pages and reports pages without extractable text; OCR is not included. DOCX and PPTX extraction may omit equations, diagrams and layout, so check the originals.
+
+After syncing lecture notes and saving a reviewed scope, create an editable local plan or budget a cram session:
+
+```sh
+python3 study_plan.py create COURSE_ID --exam 2027-04-20T14:00-04:00 --start 2027-04-10 --days 6 --minutes 45
+python3 study_plan.py cram COURSE_ID --exam 2027-04-20T14:00-04:00 --minutes 90
+python3 study_plan.py review COURSE_ID
+```
+
+Use your own dates and timezone offset. `create` uses consecutive dates up to the exam, so edit `study-data/COURSE_ID/study-plan.json` to match your actual availability. It does not schedule notifications. Mark recorded attempts with `needs_review: true` to include them in the review queue; edit or delete local records to correct or remove them. These plans are suggestions, not predictions of performance.

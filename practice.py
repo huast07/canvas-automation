@@ -112,6 +112,8 @@ def main():
         command = sub.add_parser(name); command.add_argument('course_id', type=int); command.add_argument('session_id')
     hint = sub.add_parser('hint'); hint.add_argument('course_id', type=int); hint.add_argument('session_id'); hint.add_argument('question_id')
     answer = sub.add_parser('answer'); answer.add_argument('course_id', type=int); answer.add_argument('session_id'); answer.add_argument('question_id'); answer.add_argument('path', type=Path, help='UTF-8 text file containing your answer')
+    assess = sub.add_parser('assess', help='Save a student-reviewed result for a submitted answer')
+    assess.add_argument('course_id', type=int); assess.add_argument('session_id'); assess.add_argument('question_id'); assess.add_argument('--result', required=True, choices=('correct', 'partial', 'retry', 'unknown')); assess.add_argument('--confidence', type=int, choices=range(6)); assess.add_argument('--feedback', type=Path, help='Optional UTF-8 feedback file')
     sol = sub.add_parser('solution'); sol.add_argument('course_id', type=int); sol.add_argument('session_id'); sol.add_argument('question_id')
     args = p.parse_args()
     try:
@@ -161,6 +163,23 @@ def main():
                     print(hints[used])
                     session['hints_used'][q['id']] = used + 1
                     write_json(session_path(root, args.session_id), session)
+        elif args.command == 'assess':
+            if session['mode'] == 'mock' and not session['finished_at']:
+                raise ValueError('Finish the mock before assessing answers')
+            q = lookup(session, args.question_id)
+            if q['id'] not in session['answers']:
+                raise ValueError('Save an answer before assessing it')
+            feedback = args.feedback.read_text(encoding='utf-8') if args.feedback else ''
+            current = datetime.now(timezone.utc)
+            attempt = {'id': uuid.uuid4().hex[:12], 'topic': q['topic'], 'question_id': q['id'],
+                       'session_id': session['id'], 'result': args.result, 'confidence': args.confidence,
+                       'feedback': feedback, 'needs_review': True, 'recorded_at': current.isoformat(),
+                       'review_after': (current + timedelta(days=1)).isoformat()}
+            path = root / 'attempts.json'
+            attempts = read_json(path, [])
+            attempts.append(attempt)
+            write_json(path, attempts)
+            print(f'Assessment {attempt["id"]} saved locally; review suggested in one day.')
         elif args.command == 'answer':
             if session['finished_at']:
                 raise ValueError('Session is finished')

@@ -43,7 +43,12 @@ class PracticeTests(unittest.TestCase):
         self.assertEqual(self.run_cli('solution', '7', session, 'q1')[0], 1)
         answer = self.base / 'answer.txt'; answer.write_text('My reasoning')
         self.assertEqual(self.run_cli('answer', '7', session, 'q1', str(answer))[0], 0)
+        self.assertEqual(self.run_cli('assess', '7', session, 'q1', '--result', 'retry')[0], 1)
         self.assertEqual(self.run_cli('finish', '7', session)[0], 0)
+        self.assertEqual(self.run_cli('assess', '7', session, 'q1', '--result', 'retry', '--confidence', '2')[0], 0)
+        attempts = study.read_json(self.root / 'attempts.json', [])
+        self.assertEqual(attempts[0]['result'], 'retry')
+        self.assertTrue(attempts[0]['needs_review'])
         code, result = self.run_cli('solution', '7', session, 'q1')
         self.assertEqual(code, 0); self.assertIn('Secret A', result)
         self.assertEqual(self.run_cli('answer', '7', session, 'q1', str(answer))[0], 1)
@@ -53,6 +58,12 @@ class PracticeTests(unittest.TestCase):
         data = json.loads(next((self.root / 'sessions').glob('*.json')).read_text())
         self.assertEqual([q['id'] for q in data['questions']], ['q1', 'q2'])
         (self.root / 'sync.json').unlink()
+        self.assertEqual(self.run_cli('start', '7', '--minutes', '20', '--count', '1')[0], 1)
+
+    def test_empty_or_missing_notes_do_not_unlock_practice(self):
+        study.write_json(self.root / 'sync.json', {'completed_at': study.now(), 'files': {}})
+        self.assertEqual(self.run_cli('start', '7', '--minutes', '20', '--count', '1')[0], 1)
+        study.write_json(self.root / 'sync.json', {'files': {'1': {'path': str(self.base / 'missing.txt')}}})
         self.assertEqual(self.run_cli('start', '7', '--minutes', '20', '--count', '1')[0], 1)
 
     def test_bank_requires_source_and_matching_exam(self):

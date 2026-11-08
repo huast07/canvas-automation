@@ -142,8 +142,10 @@ def ical_folding(line):
     return '\r\n'.join(pieces)
 
 
-def calendar_text(plan, start_time, offset, calendar_id):
+def calendar_text(plan, start_time, offset, calendar_id, reminder_minutes=None):
     tz = offset_timezone(offset)
+    if reminder_minutes is not None and reminder_minutes < 0:
+        raise ValueError('Reminder minutes must be zero or positive')
     exam = exam_time(plan['exam_at'])
     try:
         at = time.fromisoformat(start_time)
@@ -163,7 +165,10 @@ def calendar_text(plan, start_time, offset, calendar_id):
         lines += ['BEGIN:VEVENT', f'UID:{calendar_id}-{i}@canvas-study-local', 'DTSTAMP:' + stamp,
                   'DTSTART:' + start.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ'),
                   'DTEND:' + end.astimezone(timezone.utc).strftime('%Y%m%dT%H%M%SZ'),
-                  'SUMMARY:' + ical_escape(title), 'END:VEVENT']
+                  'SUMMARY:' + ical_escape(title)]
+        if reminder_minutes is not None:
+            lines += ['BEGIN:VALARM', f'TRIGGER:-PT{reminder_minutes}M', 'ACTION:DISPLAY', 'DESCRIPTION:Study session', 'END:VALARM']
+        lines.append('END:VEVENT')
     lines.append('END:VCALENDAR')
     return '\r\n'.join(ical_folding(line) for line in lines) + '\r\n'
 
@@ -181,7 +186,7 @@ def main():
     move = sub.add_parser('reschedule', help='Move incomplete sessions to new dates')
     move.add_argument('course_id', type=int); move.add_argument('--start', required=True); move.add_argument('--days', required=True, type=int)
     export = sub.add_parser('export-ics', help='Export local calendar file; no events are created')
-    export.add_argument('course_id', type=int); export.add_argument('path', type=Path); export.add_argument('--time', required=True); export.add_argument('--offset', required=True)
+    export.add_argument('course_id', type=int); export.add_argument('path', type=Path); export.add_argument('--time', required=True); export.add_argument('--offset', required=True); export.add_argument('--reminder-minutes', type=int, help='Add a reminder for this many minutes before each event')
     queue = sub.add_parser('review', help='List attempts marked for review')
     queue.add_argument('course_id', type=int); queue.add_argument('--all', action='store_true', help='Include items not yet due')
     args = p.parse_args()
@@ -208,7 +213,7 @@ def main():
                 print(f'Updated incomplete sessions in {path}.')
             else:
                 calendar_id = str(args.course_id) + '-' + hashlib.sha256(str(saved.get('created_at', '')).encode()).hexdigest()[:12]
-                contents = calendar_text(saved, args.time, args.offset, calendar_id)
+                contents = calendar_text(saved, args.time, args.offset, calendar_id, args.reminder_minutes)
                 with args.path.open('x', encoding='utf-8', newline='') as output:
                     output.write(contents)
                 print(f'Calendar file saved to {args.path}; import it manually if desired.')

@@ -47,6 +47,10 @@ class PlanningTests(unittest.TestCase):
         text = study_plan.calendar_text(updated, '09:00', '-05:00', '7-test')
         self.assertIn('DTSTART:20300302T140000Z', text)
         self.assertIn('DTEND:20300302T144500Z', text)
+        self.assertNotIn('BEGIN:VALARM', text)
+        self.assertIn('TRIGGER:-PT15M', study_plan.calendar_text(updated, '09:00', '-05:00', '7-test', reminder_minutes=15))
+        with self.assertRaises(ValueError):
+            study_plan.calendar_text(updated, '09:00', '-05:00', '7-test', reminder_minutes=-1)
         self.assertTrue(all(len(line.encode('utf-8')) <= 75 for line in text.split('\r\n')))
         with self.assertRaises(ValueError):
             study_plan.reschedule(updated, date(2030, 3, 9), 1)

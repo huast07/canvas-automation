@@ -11,6 +11,7 @@ import sys
 from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
+from study import course_dir, read_json, write_json, now, digest
 
 BASE = 'https://q.utoronto.ca'
 
@@ -91,7 +92,7 @@ def lecture_note(file, folders):
     return extension in {'.pdf', '.ppt', '.pptx', '.doc', '.docx', '.txt', '.md'} and bool(re.search(r'\b(lecture|lectures|notes|slides|slide|lec)\b', name + ' ' + path, re.I))
 
 
-def download_course(client, course_id, output, preview=False):
+def download_course(client, course_id, output, preview=False, include_ids=(), exclude_ids=()):
     courses = list(client.pages('/api/v1/courses?per_page=100'))
     course = next((c for c in courses if str(c['id']) == str(course_id)), None)
     if not course:
@@ -100,18 +101,39 @@ def download_course(client, course_id, output, preview=False):
     folders = {f['id']: f for f in client.pages(f'/api/v1/courses/{course_id}/folders?per_page=100')}
     files = list(client.pages(f'/api/v1/courses/{course_id}/files?per_page=100'))
     downloaded = skipped = failed = 0
-    matches = [f for f in files if lecture_note(f, folders)]
+    sync_path = course_dir(course_id) / 'sync.json'
+    previous = read_json(sync_path, {})
+    old_files = previous.get('files', {})
+    records = dict(old_files)
+    matches = [f for f in files if (lecture_note(f, folders) or f['id'] in include_ids) and f['id'] not in exclude_ids]
+    # List available course context without downloading unrelated documents.
+    for resource in ('modules', 'pages', 'discussion_topics', 'assignments'):
+        try:
+            count = sum(1 for _ in client.pages(f'/api/v1/courses/{course_id}/{resource}?per_page=100'))
+            print(f'Inventory: {count} {resource} (metadata only)')
+        except (HTTPError, URLError, ValueError):
+            print(f'Inventory: {resource} unavailable', file=sys.stderr)
     print(f'Found {len(matches)} likely lecture notes among {len(files)} course files (based on names and folders).')
+    if preview:
+        for item in files:
+            if item not in matches:
+                print(f"Not selected: {item.get('display_name') or item.get('filename', '')} (file ID {item['id']})")
     for file in matches:
-        if preview:
-            print('/'.join(folder_parts(file.get('folder_id'), folders) + [file.get('display_name') or file.get('filename', '')]))
-            continue
         name = Path(safe_name(file.get('display_name') or file.get('filename') or 'file'))
         name = f'{name.stem} [{file["id"]}]{name.suffix}'
         dest = root.joinpath(*folder_parts(file.get('folder_id'), folders), name)
+        record = old_files.get(str(file['id']), {})
+        changed = bool(record and record.get('updated_at') != file.get('updated_at'))
+        status = ('changed remotely' if changed else 'downloaded') if dest.exists() else 'missing locally'
+        if preview:
+            print(f'{status}: {dest} (file ID {file["id"]})')
+            continue
         try:
             if dest.exists():
-                print(f'Skip: {dest}')
+                if changed:
+                    print(f'Changed remotely; kept local copy: {dest}')
+                else:
+                    print(f'Skip: {dest}')
                 skipped += 1
                 continue
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -124,12 +146,15 @@ def download_course(client, course_id, output, preview=False):
                         out.close()
                         dest.unlink(missing_ok=True)
                         raise
+            records[str(file['id'])] = {'path': str(dest), 'updated_at': file.get('updated_at'), 'sha256': digest(dest)}
             print(f'Downloaded: {dest}')
             downloaded += 1
         except (OSError, URLError, ValueError) as exc:
-            print(f'Failed: {dest}: {exc}', file=sys.stderr)
+            print(f'Failed: {dest} ({type(exc).__name__})', file=sys.stderr)
             failed += 1
-    print(f'Finished: {downloaded} downloaded, {skipped} skipped, {failed} failed.')
+    if not preview:
+        write_json(sync_path, {'completed_at': now(), 'course_id': course_id, 'files': records, 'failures': failed, 'matched': len(matches)})
+    print(f'Finished: {downloaded} downloaded, {skipped} skipped, {failed} failed. Filename matching may miss lectures.')
     return 1 if failed else 0
 
 
@@ -141,6 +166,8 @@ def main():
     download.add_argument('course_id', type=int)
     download.add_argument('--output', type=Path, default=Path('downloads'))
     download.add_argument('--preview', action='store_true', help='Show matching files without downloading')
+    download.add_argument('--include-id', type=int, action='append', default=[], help='Also include this file ID')
+    download.add_argument('--exclude-id', type=int, action='append', default=[], help='Exclude this file ID')
     due = sub.add_parser('due', help='Show upcoming dated assignments')
     due.add_argument('course_id', type=int)
     syllabus = sub.add_parser('syllabus', help='Show course syllabus HTML')
@@ -156,7 +183,7 @@ def main():
                 print(f"{course['id']}\t{course.get('course_code', '')}\t{course.get('name', '')}")
             return 0
         if args.command == 'download':
-            return download_course(client, args.course_id, args.output, args.preview)
+            return download_course(client, args.course_id, args.output, args.preview, args.include_id, args.exclude_id)
         if args.command == 'syllabus':
             with client.open(f'{BASE}/api/v1/courses/{args.course_id}?include%5B%5D=syllabus_body') as response:
                 course = json.load(response)

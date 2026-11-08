@@ -1,5 +1,5 @@
 ---
 name: quercus-summary
-description: Summarize downloaded Quercus course materials at a high level.
+description: Summarize downloaded or imported Quercus course materials at a high level.
 ---
-Identify the course directory in `downloads/` or ask for its path. Inventory and read all accessible files, using suitable document/PDF tools as needed. Give a high-level topic map, main concepts and connections, citing file names and page numbers where available. Identify unreadable, image-only, or missing materials and do not imply complete coverage when they were not read. Do not infer exam coverage from lecture notes alone.
+Identify the course and run `python3 study.py inventory COURSE_ID`. Inspect the downloaded lecture folder and imported materials. Use `python3 study.py extract PATH` for text, DOCX and PPTX; use available PDF/document tools for other formats, including OCR when available. Check extracted equations, tables and diagrams against originals. Give a high-level topic map, prerequisites, concepts and connections, citing file names and page or slide numbers where available. Identify unreadable, missing or inaccessible materials; do not claim complete coverage. Do not infer exam scope from lecture notes alone.

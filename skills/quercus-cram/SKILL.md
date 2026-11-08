@@ -1,0 +1,5 @@
+---
+name: quercus-cram
+description: Guide a time-limited Quercus exam preparation session with triage, practice and feedback.
+---
+Ask for the course, exam time and minutes available. Run `python3 study.py check-ready COURSE_ID`; guide the student through lecture sync and exam scope mapping if missing, respecting their time budget. Use the documented scope and problem types to propose a time-boxed editable plan, prioritizing confirmed topics and essential prerequisites. State omissions, stale or missing sources and uncertain priorities. Start with a concise conceptual refresher and use quercus-exam-prep to guide progressively harder representative questions with hints and corrective feedback. Finish with a mixed mock and feedback if time permits; in a very short session use one or two representative questions and feedback instead of a full mock. Reserve time to review errors. Do not promise complete coverage or a grade.

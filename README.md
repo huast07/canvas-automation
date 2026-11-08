@@ -2,6 +2,8 @@
 
 A local Python tool and Codex skills for working with Canvas courses. Designed by a University of Toronto student, the project was originally built for Quercus, U of T’s Canvas installation. The tool lists courses, previews and downloads likely lecture notes, and retrieves assignment and syllabus information. The skills guide Codex through those tasks, course summaries, and exam preparation.
 
+Note. I use codex here since I find ChatGPT does better at explaining than Claude.
+
 ## Example Codex conversation
 
 This illustration shows how a student might call the exam-preparation skills and receive course-specific guidance. The outputs are examples and depend on the materials available in Canvas.

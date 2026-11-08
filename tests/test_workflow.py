@@ -106,6 +106,16 @@ class WorkflowTests(unittest.TestCase):
         self.assertTrue(quercus.lecture_note({'display_name': 'Skeleton Notes', '_page': 'Lecture 1'}, {}))
         self.assertFalse(quercus.lecture_note({'display_name': 'Video recording', '_page': 'Lecture 1'}, {}))
 
+    def test_only_clear_blank_completed_pairs_are_suppressed(self):
+        items = [
+            {'id': 1, 'display_name': 'Topic A Skeleton Notes.pdf', 'folder_id': 9},
+            {'id': 2, 'display_name': 'Topic A Completed Notes.pdf', 'folder_id': 9},
+            {'id': 3, 'display_name': 'Topic B Skeleton Notes.pdf', 'folder_id': 9},
+            {'id': 4, 'display_name': 'Topic B Partially Annotated Notes.pdf', 'folder_id': 9},
+            {'id': 5, 'display_name': 'Topic A Blank Notes.pdf', 'folder_id': 10},
+        ]
+        self.assertEqual(quercus.superseded_blank_notes(items), {1})
+
     def test_course_specific_selection_patterns(self):
         client = FakeClient()
         quercus.download_course(client, 7, self.base / 'out', include_patterns=['problem set'], exclude_patterns=['lectures'])

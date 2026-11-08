@@ -113,6 +113,25 @@ def lecture_note(file, folders):
     return supported and bool(re.search(r'\b(lecture|lectures|notes|slides|slide|lec)\b', name + ' ' + path, re.I))
 
 
+def superseded_blank_notes(files):
+    """Find only clearly paired blank/completed variants; leave ambiguous files visible."""
+    blank_re = re.compile(r'\b(?:blank|empty|skeleton|unannotated)\b', re.I)
+    completed_re = re.compile(r'\b(?:completed|complete|filled[ -]?in|fully[ -]?annotated)\b', re.I)
+    modifiers = re.compile(r'\b(?:blank|empty|skeleton|unannotated|completed|complete|filled[ -]?in|fully[ -]?annotated)\b', re.I)
+    indexed = []
+    for item in files:
+        title = item.get('display_name') or item.get('filename') or ''
+        # Match title content, not the same word appearing in a containing module.
+        stem = Path(title).stem if Path(title).suffix else title
+        label = 'blank' if blank_re.search(stem) else 'completed' if completed_re.search(stem) else None
+        normalized = re.sub(r'[^\w]+', ' ', modifiers.sub(' ', stem).casefold()).strip()
+        context = (item.get('_module') or '', item.get('_page') or '', item.get('folder_id'))
+        if label and normalized and any(x is not None and x != '' for x in context):
+            indexed.append((item['id'], label, normalized, context))
+    complete_keys = {(name, context) for _, label, name, context in indexed if label == 'completed'}
+    return {file_id for file_id, label, name, context in indexed if label == 'blank' and (name, context) in complete_keys}
+
+
 class PageLinks(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -208,11 +227,14 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
     except re.error as exc:
         raise ValueError(f'Invalid selection pattern: {exc}') from exc
 
+    superseded = superseded_blank_notes(files)
+
     def selected(file):
         name = file.get('display_name') or file.get('filename') or ''
         context = ' '.join(folder_parts(file.get('folder_id'), folders) + [file.get('_module', ''), file.get('_page', ''), name])
         included = lecture_note(file, folders) or file['id'] in include_ids or any(p.search(context) for p in includes)
-        return included and file['id'] not in exclude_ids and not any(p.search(context) for p in excludes)
+        prefer_completed = file['id'] not in superseded or file['id'] in include_ids
+        return included and prefer_completed and file['id'] not in exclude_ids and not any(p.search(context) for p in excludes)
 
     matches = [f for f in files if selected(f)]
     # List available course context without downloading unrelated documents.
@@ -226,7 +248,8 @@ def download_course(client, course_id, output, preview=False, include_ids=(), ex
     if preview:
         for item in files:
             if item not in matches:
-                print(f"Not selected: {item.get('_module', '')} / {item.get('_page', '')} / {item.get('display_name') or item.get('filename', '')} (file ID {item['id']})")
+                reason = 'completed alternative found' if item['id'] in superseded else 'not selected'
+                print(f"Not selected ({reason}): {item.get('_module', '')} / {item.get('_page', '')} / {item.get('display_name') or item.get('filename', '')} (file ID {item['id']})")
     for file in matches:
         name = Path(safe_name(file.get('display_name') or file.get('filename') or 'file'))
         name = f'{name.stem} [{file["id"]}]{name.suffix}'

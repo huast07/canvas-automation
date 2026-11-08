@@ -72,7 +72,7 @@ Enter your token at the hidden prompt and note the course ID. If Codex cannot ac
 
 ### Download lecture notes: `quercus-lecture-notes`
 
-Ask Codex to download lecture notes for a course, or invoke `$quercus-lecture-notes` with its course ID. The skill prefers completed notes over a matching blank or skeleton version when it can identify both. It reports uncertain matches and keeps empty notes when no completed version is found. This preference is applied by the skill; the standalone Python command does not automatically compare note versions. To run the underlying commands yourself:
+Ask Codex to download lecture notes for a course, or invoke `$quercus-lecture-notes` with its course ID. The skill prefers completed notes over a matching blank or skeleton version when it can identify both. It reports uncertain matches and keeps empty notes when no completed version is found. The downloader also suppresses a blank version when it can identify a clearly matching completed file in the same folder or module/page. Ambiguous variants remain visible for review; use `--include-id` to keep both. To run the underlying commands yourself:
 
 ```sh
 python3 quercus.py download COURSE_ID --preview

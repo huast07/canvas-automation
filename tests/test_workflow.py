@@ -2,6 +2,7 @@ import io
 import json
 import tempfile
 import unittest
+from urllib.error import HTTPError
 from pathlib import Path
 from unittest.mock import patch
 
@@ -60,6 +61,39 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(quercus.download_course(client, 7, out), 0)
         self.assertEqual(client.downloads, 1)
         self.assertEqual(study.read_json(study.course_dir(7) / 'sync.json', {})['files']['12']['updated_at'], 'one')
+    def test_restricted_file_list_uses_module_items(self):
+        class Restricted(FakeClient):
+            def pages(self, path):
+                if '/files?' in path and '/courses/7/' in path:
+                    raise HTTPError(path, 403, 'Forbidden', {}, None)
+                if '/modules/3/items?' in path:
+                    return iter([{'type': 'File', 'content_id': 44, 'title': 'Lecture 1'}])
+                if '/modules?' in path:
+                    return iter([{'id': 3, 'name': 'Week 1'}])
+                return super().pages(path)
+            def open(self, url):
+                return io.BytesIO(json.dumps({'id': 44, 'filename': 'slides.pdf', 'url': 'https://q.utoronto.ca/file', 'updated_at': 'today'}).encode())
+        client = Restricted()
+        self.assertEqual(quercus.download_course(client, 7, self.base / 'out', preview=True), 0)
+        self.assertEqual(client.downloads, 0)
+        self.assertEqual(quercus.download_course(client, 7, self.base / 'out'), 0)
+        self.assertEqual(client.downloads, 1)
+        self.assertTrue(any(p.name == 'slides [44].pdf' for p in (self.base / 'out').rglob('*.pdf')))
+
+    def test_page_links_only_include_same_course_canvas_files(self):
+        body = '<a href="/courses/7/files/44?verifier=secret">Skeleton Notes</a><a href="https://evil.test/courses/7/files/45">Notes</a><a href="/courses/8/files/46">Notes</a>'
+        self.assertEqual(list(quercus.page_file_links(body, 7)), [(44, 'Skeleton Notes')])
+        self.assertTrue(quercus.lecture_note({'display_name': 'Skeleton Notes', '_page': 'Lecture 1'}, {}))
+        self.assertFalse(quercus.lecture_note({'display_name': 'Video recording', '_page': 'Lecture 1'}, {}))
+
+    def test_course_specific_selection_patterns(self):
+        client = FakeClient()
+        quercus.download_course(client, 7, self.base / 'out', include_patterns=['problem set'], exclude_patterns=['lectures'])
+        self.assertEqual(client.downloads, 1)
+        self.assertTrue(any(p.name == 'problem set [13].pdf' for p in (self.base / 'out').rglob('*.pdf')))
+        self.assertFalse(quercus.lecture_note({'display_name': '📈 Week 1', '_module': 'Intro'}, {}))
+        self.assertTrue(quercus.lecture_note({'display_name': 'Lecture 1', '_module': 'Intro'}, {}))
+
     def test_extraction_and_inclusion_override(self):
         path = self.base / 'note.md'; path.write_text('hello')
         self.assertEqual(study.extract(path)[0], 'hello')

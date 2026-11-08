@@ -1,0 +1,16 @@
+{
+  "exam_id": "Replace with the exact exam_id from exam-scope.json",
+  "reviewed": false,
+  "questions": [
+    {
+      "id": "example-1",
+      "topic": "Replace with a topic from the reviewed scope",
+      "level": 1,
+      "origin": "original",
+      "prompt": "Replace with a reviewed question.",
+      "hints": ["Replace with a hint."],
+      "solution": "Replace with a checked worked solution.",
+      "source": "Replace with source file and page or slide."
+    }
+  ]
+}

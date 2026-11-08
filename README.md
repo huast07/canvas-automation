@@ -180,3 +180,18 @@ To record a practice attempt, create a local JSON file containing, for example, 
 ### Check basic arithmetic
 
 `python3 check_math.py '2*(3+1)/4' '2'` compares arithmetic values exactly. It supports numbers, parentheses, `+`, `-`, `*`, `/`, and integer `**` powers. A match does not verify the formula, units, assumptions or a symbolic solution; unsupported expressions need another method.
+
+### Persistent practice and mock sessions
+
+After lecture sync and exam scope mapping, create a reviewed question bank from `templates/question-bank.example.json`. Set `exam_id` to the exact saved scope ID, include source references, hints and checked solutions, and set `reviewed` to `true` once reviewed. Codex can help write the bank, but the program does not generate questions or evaluate open-ended answers. Import a bank and start a session:
+
+```sh
+python3 practice.py import-bank COURSE_ID /path/to/question-bank.json
+python3 practice.py start COURSE_ID --mode guided --minutes 30 --count 3
+python3 practice.py show COURSE_ID SESSION_ID
+python3 practice.py hint COURSE_ID SESSION_ID QUESTION_ID
+python3 practice.py answer COURSE_ID SESSION_ID QUESTION_ID /path/to/answer.txt
+python3 practice.py solution COURSE_ID SESSION_ID QUESTION_ID
+```
+
+Use `--mode mock` to keep hints and solutions hidden until `python3 practice.py finish COURSE_ID SESSION_ID`; then use `practice.py solutions COURSE_ID SESSION_ID`. The mock reports elapsed time and stops accepting answers after the deadline; it does not automatically grade them. Question banks, solutions and submitted answers are stored in `study-data/` and excluded from Git. Import does not overwrite an existing bank.

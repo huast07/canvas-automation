@@ -3,3 +3,6 @@ __pycache__/
 .env
 
 study-data/
+
+# Local planning documents
+plans/

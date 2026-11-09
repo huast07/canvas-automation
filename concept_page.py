@@ -44,6 +44,11 @@ def validate(data):
         require_text(item.get('concept'), f'Knowledge map entry {i} concept')
         require_text(item.get('group'), f'Knowledge map entry {i} group')
         require_text(item.get('role'), f'Knowledge map entry {i} role')
+        for optional in ('subgroup', 'kind', 'scope_status'):
+            if optional in item:
+                require_text(item[optional], f'Knowledge map entry {i} {optional}')
+        if item.get('scope_status', 'unknown') not in ('confirmed', 'inferred', 'unknown', 'out_of_scope'):
+            raise ValueError(f'Knowledge map entry {i} has an invalid scope status')
         if not isinstance(item.get('prerequisites'), list):
             raise ValueError(f'Knowledge map entry {i} prerequisites must be a list')
         for prerequisite in item['prerequisites']:
@@ -62,6 +67,25 @@ def validate(data):
         if not isinstance(relation, dict) or relation.get('from') not in names or relation.get('to') not in names or relation['from'] == relation['to']:
             raise ValueError('Relationships must connect different concepts on the knowledge map')
         require_text(relation.get('label'), 'Relationship label')
+    coverage = data.get('source_coverage', [])
+    if not isinstance(coverage, list):
+        raise ValueError('source_coverage must be a list')
+    for i, entry in enumerate(coverage, 1):
+        if not isinstance(entry, dict):
+            raise ValueError(f'Source coverage entry {i} must be an object')
+        for field in ('lecture', 'source', 'status'):
+            require_text(entry.get(field), f'Source coverage entry {i} {field}')
+        if entry['status'] not in ('mapped', 'partial', 'unavailable', 'out_of_scope'):
+            raise ValueError(f'Source coverage entry {i} has an invalid status')
+        if not isinstance(entry.get('concepts'), list):
+            raise ValueError(f'Source coverage entry {i} concepts must be a list')
+        if entry['status'] == 'mapped' and not entry['concepts']:
+            raise ValueError(f'Mapped source coverage entry {i} must name concepts')
+        for concept in entry['concepts']:
+            if concept not in names:
+                raise ValueError(f'Source coverage entry {i} references a concept missing from the knowledge map')
+        if entry.get('notes') is not None and not isinstance(entry['notes'], str):
+            raise ValueError(f'Source coverage entry {i} notes must be text')
     lectures = data.get('lecture_explainers')
     if not isinstance(lectures, list) or not lectures:
         raise ValueError('At least one lecture explainer is required')
@@ -142,8 +166,12 @@ def render_mindmap(data):
     items = data['knowledge_map']
     groups = list(dict.fromkeys(item['group'] for item in items))
     group_index = {group: i for i, group in enumerate(groups)}
-    ordered = [item for group in groups for item in items if item['group'] == group]
-    positions = {item['concept']: (530, 48 + i * 86) for i, item in enumerate(ordered)}
+    ordered = []
+    for group in groups:
+        subgroup_names = list(dict.fromkeys(item.get('subgroup', 'General') for item in items if item['group'] == group))
+        for subgroup in subgroup_names:
+            ordered.extend(item for item in items if item['group'] == group and item.get('subgroup', 'General') == subgroup)
+    positions = {item['concept']: (750, 48 + i * 86) for i, item in enumerate(ordered)}
     total_height = max(220, 70 + len(ordered) * 86)
     group_y = {}
     for group in groups:
@@ -159,7 +187,15 @@ def render_mindmap(data):
         for item in ordered:
             if item['group'] == group:
                 x, y = positions[item['concept']]
-                branches.append(f'<path class="branch" d="M 385 {gy:.1f} C 445 {gy:.1f}, 455 {y+30}, 530 {y+30}"/>')
+                subgroup = item.get('subgroup', 'General')
+                subgroup_items = [x for x in ordered if x['group'] == group and x.get('subgroup', 'General') == subgroup]
+                sy = sum(positions[x['concept']][1] + 30 for x in subgroup_items) / len(subgroup_items)
+                branches.append(f'<path class="branch" d="M 600 {sy:.1f} C 650 {sy:.1f}, 690 {y+30}, 750 {y+30}"/>')
+        for subgroup in dict.fromkeys(item.get('subgroup', 'General') for item in ordered if item['group'] == group):
+            subgroup_items = [x for x in ordered if x['group'] == group and x.get('subgroup', 'General') == subgroup]
+            sy = sum(positions[x['concept']][1] + 30 for x in subgroup_items) / len(subgroup_items)
+            branches.append(f'<path class="branch" d="M 385 {gy:.1f} C 400 {gy:.1f}, 405 {sy:.1f}, 420 {sy:.1f}"/>')
+            nodes.append(f'<rect x="420" y="{sy-30:.1f}" width="180" height="60" rx="12" fill="{color}" stroke="#9aabb8"/><title>{escape(subgroup)}</title><text class="map-label" x="432" y="{sy-6:.1f}">{svg_lines(subgroup,432,sy-6,19,2)}</text>')
     for index, item in enumerate(ordered):
         x, y = positions[item['concept']]
         color = PALETTE[group_index[item['group']] % len(PALETTE)]
@@ -169,11 +205,11 @@ def render_mindmap(data):
     for index, relation in enumerate(all_relations):
         _, y1 = positions[relation['from']]
         _, y2 = positions[relation['to']]
-        curve = 755 + (index % 6) * 14
-        relations.append(f'<path class="relation" d="M 720 {y1+30} C {curve} {y1+30}, {curve} {y2+30}, 720 {y2+30}" marker-end="url(#mind-arrow)"><title>{escape(relation["from"])} → {escape(relation["to"])}: {escape(relation["label"])}</title></path>')
+        curve = 985 + (index % 6) * 14
+        relations.append(f'<path class="relation" d="M 940 {y1+30} C {curve} {y1+30}, {curve} {y2+30}, 940 {y2+30}" marker-end="url(#mind-arrow)"><title>{escape(relation["from"])} → {escape(relation["to"])}: {escape(relation["label"])}</title></path>')
         relation_text.append(f'<li><strong>{text(relation["from"])}</strong> — {text(relation["label"])} → <strong>{text(relation["to"])}</strong></li>')
     center = f'<rect x="20" y="{center_y-38:.1f}" width="160" height="76" rx="14" fill="#143249"/><text fill="white" font-size="14" font-weight="700" x="32" y="{center_y-8:.1f}">{svg_lines(data["course"],32,center_y-8,17,2)}</text>'
-    svg = f'<div class="diagram-scroll" tabindex="0" aria-label="Scrollable knowledge mind map"><svg viewBox="0 0 860 {total_height}" role="img" aria-label="Knowledge mind map: course branches to concept groups; dashed arrows show concept relationships"><defs><marker id="mind-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#b45c27"/></marker></defs>{"".join(branches)}{"".join(relations)}{center}{"".join(nodes)}</svg></div>'
+    svg = f'<div class="diagram-scroll" tabindex="0" aria-label="Scrollable knowledge mind map"><svg viewBox="0 0 1090 {total_height}" role="img" aria-label="Knowledge mind map: course branches to concept groups; dashed arrows show concept relationships"><defs><marker id="mind-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#b45c27"/></marker></defs>{"".join(branches)}{"".join(relations)}{center}{"".join(nodes)}</svg></div>'
     legend = ''.join(f'<span><i style="background:{PALETTE[i % len(PALETTE)]}"></i>{text(group)}</span>' for i, group in enumerate(groups))
     relation_list = ''.join(relation_text) or '<li>No relationships were recorded.</li>'
     return svg + f'<div class="legend">{legend}</div><details open><summary>Concept relationships</summary><ul>{relation_list}</ul></details>'
@@ -201,9 +237,19 @@ def render(data):
     nav = ''.join(f'<li><a href="#category-{i}">{text(cat["title"])}</a></li>' for i, cat in enumerate(data['categories'], 1))
     diagram = render_mindmap(data)
     knowledge = []
-    for index, item in enumerate([item for group in dict.fromkeys(x['group'] for x in data['knowledge_map']) for item in data['knowledge_map'] if item['group'] == group], 1):
+    ordered = []
+    for group in dict.fromkeys(x['group'] for x in data['knowledge_map']):
+        for subgroup in dict.fromkeys(x.get('subgroup', 'General') for x in data['knowledge_map'] if x['group'] == group):
+            ordered.extend(x for x in data['knowledge_map'] if x['group'] == group and x.get('subgroup', 'General') == subgroup)
+    for index, item in enumerate(ordered, 1):
         prereqs = ', '.join(item['prerequisites']) if item['prerequisites'] else 'None listed'
-        knowledge.append(f'<article id="concept-{index}" class="map-card"><p class="eyebrow">{text(item["group"])}</p><h3>{text(item["concept"])}</h3><p>{text(item["role"])}</p><p class="sources"><strong>Builds on:</strong> {text(prereqs)}</p></article>')
+        knowledge.append(f'<article id="concept-{index}" class="map-card"><p class="eyebrow">{text(item["group"])} / {text(item.get("subgroup", "General"))}</p><h3>{text(item["concept"])}</h3><p>{text(item["role"])}</p><p class="sources"><strong>Type:</strong> {text(item.get("kind", "concept"))} · <strong>Scope:</strong> {text(item.get("scope_status", "unknown"))}</p><p class="sources"><strong>Builds on:</strong> {text(prereqs)}</p></article>')
+    coverage = data.get('source_coverage', [])
+    if coverage:
+        coverage_rows = ''.join(f'<tr><td>{text(item["lecture"])}</td><td>{text(item["status"].replace("_", " "))}</td><td>{text(", ".join(item["concepts"]) or "None identified")}</td><td>{text(item["source"])}<br>{text(item.get("notes", ""))}</td></tr>' for item in coverage)
+        coverage_html = f'<div class="table-scroll"><table><thead><tr><th>Lecture</th><th>Status</th><th>Mapped concepts</th><th>Source and notes</th></tr></thead><tbody>{coverage_rows}</tbody></table></div><p class="sources">Coverage statuses are reported by the lesson author and are not independently verified.</p>'
+    else:
+        coverage_html = '<p>No lecture-by-lecture coverage checklist was supplied; completeness is unknown.</p>'
     lectures = []
     for index, lecture in enumerate(data['lecture_explainers'], 1):
         refs = ''.join(f'<li>{text(source)}</li>' for source in lecture['sources'])
@@ -222,8 +268,8 @@ def render(data):
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>{text(data['course'])} — exam concepts</title>
 <style>
-:root{{--ink:#17263b;--muted:#52657a;--line:#dce5ed;--blue:#095d75;--paper:#fff;--bg:#f3f6f8}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth}}body{{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}a{{color:#075c78}}a:focus-visible{{outline:3px solid #d98520;outline-offset:3px}}header{{background:#143249;color:white;padding:3.5rem max(1.25rem,calc((100vw - 1120px)/2));}}header p{{max-width:65ch;margin:.7rem 0 0;color:#d4e6eb}}h1{{font-size:clamp(2rem,5vw,3.2rem);line-height:1.12;margin:.35rem 0}}.eyebrow{{font-size:.72rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#357387}}header .eyebrow{{color:#94d8df}}.layout{{max-width:1120px;margin:auto;padding:2rem 1.25rem 4rem;display:grid;grid-template-columns:240px minmax(0,1fr);gap:2rem;align-items:start}}nav{{position:sticky;top:1.2rem;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:1.2rem}}nav h2{{font-size:.85rem;margin:0}}.diagram-scroll{{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}}.diagram-scroll svg{{display:block;min-width:760px;width:100%;height:auto}}.branch{{fill:none;stroke:#afc3ca;stroke-width:1.5}}.relation{{fill:none;stroke:#b45c27;stroke-width:2;stroke-dasharray:5 3}}.map-label{{fill:#17263b;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}.legend{{display:flex;gap:.8rem;flex-wrap:wrap;margin:1rem 0;font-size:.86rem}}.legend i{{display:inline-block;width:.8rem;height:.8rem;border:1px solid #9aabb8;border-radius:3px;margin-right:.3rem}}.explain-graphic{{margin:1.25rem 0;padding:1rem;border:1px solid var(--line);border-radius:10px}}.explain-graphic svg{{width:100%;height:auto;display:block}}.sr-only{{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}.map-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75rem}}.map-card{{padding:1rem;border-radius:10px;background:#f1f7f8}}.map-card p{{font-size:.92rem}}nav ol{{padding-left:1.3rem;margin:.6rem 0}}nav li{{margin:.45rem 0}}main{{min-width:0}}.category,.notice{{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:clamp(1.3rem,3vw,2rem);margin-bottom:1.2rem}}h2{{font-size:1.65rem;line-height:1.25;margin:.25rem 0 .7rem}}h3{{font-size:1.05rem;margin:0 0 .5rem}}p{{margin:.5rem 0 1rem;overflow-wrap:anywhere}}.lead{{color:var(--muted);font-size:1.05rem}}.concept{{border-left:3px solid #62a7b1;padding:.15rem 0 .15rem 1rem;margin:1.5rem 0}}.sources{{font-size:.88rem;color:var(--muted);overflow-wrap:anywhere}}.sources ul{{margin:.2rem 0;padding-left:1.1rem}}.example,.progression{{padding:1.2rem;border-radius:10px;background:#f1f7f8;margin-top:1rem}}.progression{{background:#fbf5ea}}.example ol{{padding-left:1.4rem}}.example li{{margin:.5rem 0}}.notice{{color:var(--muted);font-size:.92rem}}@media(max-width:700px){{header{{padding:2rem 1.25rem}}.layout{{display:block}}nav{{position:static;margin-bottom:1rem}}}}@media print{{body{{background:white}}header{{padding:1rem;background:white;color:black}}header p,header .eyebrow{{color:black}}.layout{{display:block;padding:0}}nav{{position:static}}.category,.notice{{break-inside:avoid;border:0}}}}
-</style></head><body><header><p class="eyebrow">FIRST PRINCIPLES • EXAM PREPARATION</p><h1>{text(data['course'])}</h1><p>{text(data['exam'])}</p><p>{text(data['overview'])}</p></header><div class="layout"><nav aria-label="Lesson contents"><h2>On this page</h2><ul><li><a href="#knowledge-map">Knowledge map</a></li><li><a href="#problem-types">Problem types and concepts</a></li><li><a href="#lecture-explainers">Lecture explainers</a></li></ul><h2>Problem categories</h2><ol>{nav}</ol><a href="#gaps">Coverage and gaps</a></nav><main><section id="knowledge-map" class="category"><p class="eyebrow">01 • THE BIG PICTURE</p><h2>Knowledge map</h2><p class="lead">Key concepts and their prerequisite relationships.</p>{diagram}<p class="sources">Colored branches group concepts. Dashed arrows show relationships; use the list above for their labels.</p><div class="map-grid">{''.join(knowledge)}</div></section><section id="problem-types" class="notice"><h2>Concepts for each problem type</h2><p>The categories below connect each question type to its prerequisites, worked example and practice progression.</p></section>{''.join(sections)}<section id="lecture-explainers" class="category"><p class="eyebrow">03 • BUILD FROM FIRST PRINCIPLES</p><h2>Core lecture concepts</h2><p class="lead">Definitions, reasoning and examples organized by lecture.</p>{''.join(lectures)}</section><section id="gaps" class="notice"><h2>Coverage and gaps</h2><ul>{gaps}</ul><p>Explanations are study aids. Verify formulas, quotations, diagrams and exam requirements against the cited sources.</p></section></main></div></body></html>'''
+:root{{--ink:#17263b;--muted:#52657a;--line:#dce5ed;--blue:#095d75;--paper:#fff;--bg:#f3f6f8}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth}}body{{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}a{{color:#075c78}}a:focus-visible{{outline:3px solid #d98520;outline-offset:3px}}header{{background:#143249;color:white;padding:3.5rem max(1.25rem,calc((100vw - 1120px)/2));}}header p{{max-width:65ch;margin:.7rem 0 0;color:#d4e6eb}}h1{{font-size:clamp(2rem,5vw,3.2rem);line-height:1.12;margin:.35rem 0}}.eyebrow{{font-size:.72rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#357387}}header .eyebrow{{color:#94d8df}}.layout{{max-width:1120px;margin:auto;padding:2rem 1.25rem 4rem;display:grid;grid-template-columns:240px minmax(0,1fr);gap:2rem;align-items:start}}nav{{position:sticky;top:1.2rem;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:1.2rem}}nav h2{{font-size:.85rem;margin:0}}.diagram-scroll{{overflow:auto;max-height:75vh;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}}.diagram-scroll svg{{display:block;min-width:760px;width:100%;height:auto}}.branch{{fill:none;stroke:#afc3ca;stroke-width:1.5}}.relation{{fill:none;stroke:#b45c27;stroke-width:2;stroke-dasharray:5 3}}.map-label{{fill:#17263b;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}.legend{{display:flex;gap:.8rem;flex-wrap:wrap;margin:1rem 0;font-size:.86rem}}.legend i{{display:inline-block;width:.8rem;height:.8rem;border:1px solid #9aabb8;border-radius:3px;margin-right:.3rem}}.explain-graphic{{margin:1.25rem 0;padding:1rem;border:1px solid var(--line);border-radius:10px}}.explain-graphic svg{{width:100%;height:auto;display:block}}.sr-only{{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}.table-scroll{{overflow-x:auto}}table{{border-collapse:collapse;width:100%;font-size:.9rem}}th,td{{text-align:left;border-bottom:1px solid var(--line);padding:.65rem;vertical-align:top}}th{{background:#f1f7f8}}.map-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75rem}}.map-card{{padding:1rem;border-radius:10px;background:#f1f7f8}}.map-card p{{font-size:.92rem}}nav ol{{padding-left:1.3rem;margin:.6rem 0}}nav li{{margin:.45rem 0}}main{{min-width:0}}.category,.notice{{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:clamp(1.3rem,3vw,2rem);margin-bottom:1.2rem}}h2{{font-size:1.65rem;line-height:1.25;margin:.25rem 0 .7rem}}h3{{font-size:1.05rem;margin:0 0 .5rem}}p{{margin:.5rem 0 1rem;overflow-wrap:anywhere}}.lead{{color:var(--muted);font-size:1.05rem}}.concept{{border-left:3px solid #62a7b1;padding:.15rem 0 .15rem 1rem;margin:1.5rem 0}}.sources{{font-size:.88rem;color:var(--muted);overflow-wrap:anywhere}}.sources ul{{margin:.2rem 0;padding-left:1.1rem}}.example,.progression{{padding:1.2rem;border-radius:10px;background:#f1f7f8;margin-top:1rem}}.progression{{background:#fbf5ea}}.example ol{{padding-left:1.4rem}}.example li{{margin:.5rem 0}}.notice{{color:var(--muted);font-size:.92rem}}@media(max-width:700px){{header{{padding:2rem 1.25rem}}.layout{{display:block}}nav{{position:static;margin-bottom:1rem}}}}@media print{{body{{background:white}}header{{padding:1rem;background:white;color:black}}header p,header .eyebrow{{color:black}}.layout{{display:block;padding:0}}nav{{position:static}}.category,.notice{{break-inside:avoid;border:0}}}}
+</style></head><body><header><p class="eyebrow">FIRST PRINCIPLES • EXAM PREPARATION</p><h1>{text(data['course'])}</h1><p>{text(data['exam'])}</p><p>{text(data['overview'])}</p></header><div class="layout"><nav aria-label="Lesson contents"><h2>On this page</h2><ul><li><a href="#knowledge-map">Knowledge map</a></li><li><a href="#coverage">Lecture coverage</a></li><li><a href="#problem-types">Problem types and concepts</a></li><li><a href="#lecture-explainers">Lecture explainers</a></li></ul><h2>Problem categories</h2><ol>{nav}</ol><a href="#gaps">Coverage and gaps</a></nav><main><section id="knowledge-map" class="category"><p class="eyebrow">01 • THE BIG PICTURE</p><h2>Knowledge map</h2><p class="lead">Key concepts and their prerequisite relationships.</p>{diagram}<p class="sources">Colored branches group concepts. Dashed arrows show relationships; use the list above for their labels.</p><div class="map-grid">{''.join(knowledge)}</div></section><section id="coverage" class="category"><p class="eyebrow">COVERAGE CHECK</p><h2>Lecture-by-lecture coverage</h2>{coverage_html}</section><section id="problem-types" class="notice"><h2>Concepts for each problem type</h2><p>The categories below connect each question type to its prerequisites, worked example and practice progression.</p></section>{''.join(sections)}<section id="lecture-explainers" class="category"><p class="eyebrow">03 • BUILD FROM FIRST PRINCIPLES</p><h2>Core lecture concepts</h2><p class="lead">Definitions, reasoning and examples organized by lecture.</p>{''.join(lectures)}</section><section id="gaps" class="notice"><h2>Coverage and gaps</h2><ul>{gaps}</ul><p>Explanations are study aids. Verify formulas, quotations, diagrams and exam requirements against the cited sources.</p></section></main></div></body></html>'''
 
 
 def main():

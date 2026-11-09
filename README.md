@@ -206,7 +206,7 @@ Use `--mode mock` to keep hints and solutions hidden until `python3 practice.py 
 
 ### Concepts page before practice
 
-The exam-prep and cram skills build a local HTML lesson before tutoring. It contains a categorized visual mind map of concepts and their relationships, explanatory graphics, the concepts required for each problem type, and lecture-by-lecture first-principles explanations with reasoning, worked examples, citations and identified gaps. The skills then move from individual concepts to combined exam-style problems. Open the illustrative [example concepts page](examples/concepts-demo.html) from a local clone; its course and source labels are fictional.
+The exam-prep and cram skills build a local HTML lesson before tutoring. It contains a categorized visual mind map of concepts, methods, variants and relationships; explanatory graphics; concepts required for each problem type; and lecture-by-lecture explanations with reasoning, worked examples and citations. A source-coverage checklist records which lectures were mapped, partially inspected, unavailable or outside the exam. These statuses are supplied by the lesson author and do not independently prove completeness. The skills then move from individual concepts to combined exam-style problems. Open the illustrative [example concepts page](examples/concepts-demo.html) from a local clone; its course and source labels are fictional.
 
 Codex prepares the content from your reviewed scope and course materials using `templates/concept-lesson.example.json`. The renderer checks the course prerequisites, exam ID and required sections, then saves a new file in `study-data/COURSE_ID/lessons/` and can open it:
 

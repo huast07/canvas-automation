@@ -33,7 +33,11 @@ class ConceptPageTests(unittest.TestCase):
         self.assertIn('Numerical methods', page)
         self.assertIn('prerequisite for', page)
         self.assertIn('approximates solutions of', page)
-        self.assertEqual(page.count('class="explain-graphic"'), 3)
+        self.assertEqual(page.count('class="explain-graphic"'), len(self.example['lecture_explainers']) + len(self.example['categories']))
+        self.assertIn('Lecture-by-lecture coverage', page)
+        self.assertIn('Algorithms', page)
+        self.assertIn('Improved Euler method', page)
+        self.assertIn('Runge–Kutta method', page)
         self.assertIn('One Euler step', page)
         broken = copy.deepcopy(self.example)
         broken['lecture_explainers'][0]['concept'] = 'Not on the map'
@@ -47,6 +51,39 @@ class ConceptPageTests(unittest.TestCase):
         broken['categories'][0]['graphic'] = None
         with self.assertRaises(ValueError):
             concept_page.render(broken)
+        broken = copy.deepcopy(self.example)
+        broken['source_coverage'][0]['concepts'] = ['Unmapped concept']
+        with self.assertRaises(ValueError):
+            concept_page.render(broken)
+        broken = copy.deepcopy(self.example)
+        broken['source_coverage'][0]['status'] = 'mapped'
+        broken['source_coverage'][0]['concepts'] = []
+        with self.assertRaises(ValueError):
+            concept_page.render(broken)
+
+    def test_humanities_taxonomy_and_coverage_are_not_stem_specific(self):
+        data = copy.deepcopy(self.example)
+        data['course'] = 'Illustrative history course'
+        data['knowledge_map'] = [
+            {'concept': 'Primary evidence', 'group': 'Historical sources', 'subgroup': 'Evidence', 'kind': 'source type', 'scope_status': 'confirmed', 'role': 'Contemporary evidence', 'prerequisites': []},
+            {'concept': 'Interpretive argument', 'group': 'Historical analysis', 'subgroup': 'Argument', 'kind': 'method', 'scope_status': 'inferred', 'role': 'A claim supported by evidence', 'prerequisites': ['Primary evidence']},
+        ]
+        data['relationships'] = [{'from': 'Primary evidence', 'to': 'Interpretive argument', 'label': 'supports'}]
+        data['lecture_explainers'] = [data['lecture_explainers'][0]]
+        data['lecture_explainers'][0]['concept'] = 'Primary evidence'
+        data['categories'] = [data['categories'][0]]
+        data['categories'][0]['concepts'] = [data['categories'][0]['concepts'][0]]
+        data['categories'][0]['concepts'][0]['name'] = 'Interpretive argument'
+        data['source_coverage'] = [
+            {'lecture': 'Lecture 1', 'source': 'Reading, p. 2', 'status': 'mapped', 'concepts': ['Primary evidence', 'Interpretive argument']},
+            {'lecture': 'Lecture 2', 'source': 'Unavailable recording', 'status': 'unavailable', 'concepts': [], 'notes': 'Not inspected'},
+        ]
+        page = concept_page.render(data)
+        self.assertIn('Historical analysis', page)
+        self.assertIn('Interpretive argument', page)
+        self.assertIn('Unavailable recording', page)
+        self.assertIn('Not inspected', page)
+        self.assertIn('inferred', page)
 
     def test_missing_sources_or_combined_progression_are_rejected(self):
         lesson = copy.deepcopy(self.example)

@@ -2,34 +2,178 @@
   "course": "Illustrative course: Differential equations",
   "exam": "Example concepts page — not a real course scope",
   "exam_id": "example-exam",
-  "overview": "This demonstration shows how a concepts page can connect prerequisites, lecture ideas and problem types before guided practice. The content and source labels are illustrative.",
+  "overview": "This fictional example illustrates a deeper course-wide concept inventory and how it can be connected to problem types. Its content and source labels are illustrative, not a real course syllabus.",
   "knowledge_map": [
     {
       "concept": "Rate of change",
       "group": "Foundations",
-      "role": "Describes how quickly a quantity changes at an instant.",
+      "subgroup": "Calculus",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "The rate at which a quantity changes.",
       "prerequisites": []
     },
     {
       "concept": "Differential equations",
       "group": "Foundations",
-      "role": "Connect a quantity to its rate of change.",
+      "subgroup": "Classification",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "Equations relating quantities and derivatives.",
       "prerequisites": [
         "Rate of change"
       ]
     },
     {
-      "concept": "Slope at a point",
-      "group": "Numerical methods",
-      "role": "Evaluates the rate at the current point.",
+      "concept": "Initial value problems",
+      "group": "Foundations",
+      "subgroup": "Classification",
+      "kind": "problem type",
+      "scope_status": "unknown",
+      "role": "An equation together with a value at a starting point.",
       "prerequisites": [
         "Differential equations"
       ]
     },
     {
+      "concept": "Linear versus nonlinear",
+      "group": "Foundations",
+      "subgroup": "Classification",
+      "kind": "distinction",
+      "scope_status": "unknown",
+      "role": "Different equation structures support different tools.",
+      "prerequisites": [
+        "Differential equations"
+      ]
+    },
+    {
+      "concept": "Existence and uniqueness",
+      "group": "Foundations",
+      "subgroup": "Theorems",
+      "kind": "principle",
+      "scope_status": "unknown",
+      "role": "Conditions under which solutions exist and are unique.",
+      "prerequisites": [
+        "Initial value problems"
+      ]
+    },
+    {
+      "concept": "Separation of variables",
+      "group": "First-order equations",
+      "subgroup": "Solution methods",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Rearranges a separable equation so each variable can be integrated.",
+      "prerequisites": [
+        "Differential equations"
+      ]
+    },
+    {
+      "concept": "Integrating factors",
+      "group": "First-order equations",
+      "subgroup": "Solution methods",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Transforms a first-order linear equation into a product derivative.",
+      "prerequisites": [
+        "Linear versus nonlinear"
+      ]
+    },
+    {
+      "concept": "Autonomous equations",
+      "group": "First-order equations",
+      "subgroup": "Qualitative analysis",
+      "kind": "model",
+      "scope_status": "unknown",
+      "role": "The rate depends on the state rather than explicitly on time.",
+      "prerequisites": [
+        "Differential equations"
+      ]
+    },
+    {
+      "concept": "Equilibria and stability",
+      "group": "First-order equations",
+      "subgroup": "Qualitative analysis",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "Identify steady states and nearby behavior.",
+      "prerequisites": [
+        "Autonomous equations"
+      ]
+    },
+    {
+      "concept": "Linear systems",
+      "group": "Systems",
+      "subgroup": "Models",
+      "kind": "model",
+      "scope_status": "unknown",
+      "role": "Several coupled first-order equations in matrix form.",
+      "prerequisites": [
+        "Differential equations"
+      ]
+    },
+    {
+      "concept": "Eigenvalues and eigenvectors",
+      "group": "Systems",
+      "subgroup": "Solution methods",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Identify directions and rates for matrix systems.",
+      "prerequisites": [
+        "Linear systems"
+      ]
+    },
+    {
+      "concept": "Repeated eigenvalues",
+      "group": "Systems",
+      "subgroup": "Solution methods",
+      "kind": "variant",
+      "scope_status": "unknown",
+      "role": "May require generalized eigenvectors when there are too few eigenvectors.",
+      "prerequisites": [
+        "Eigenvalues and eigenvectors"
+      ]
+    },
+    {
+      "concept": "Matrix exponential",
+      "group": "Systems",
+      "subgroup": "Solution methods",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Represents solutions of constant-coefficient homogeneous systems.",
+      "prerequisites": [
+        "Linear systems"
+      ]
+    },
+    {
+      "concept": "Phase portraits",
+      "group": "Systems",
+      "subgroup": "Qualitative analysis",
+      "kind": "representation",
+      "scope_status": "unknown",
+      "role": "Depict trajectories and equilibrium behavior.",
+      "prerequisites": [
+        "Linear systems"
+      ]
+    },
+    {
+      "concept": "Slope at a point",
+      "group": "Numerical methods",
+      "subgroup": "Foundations",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "Evaluates the rate at a current state.",
+      "prerequisites": [
+        "Initial value problems"
+      ]
+    },
+    {
       "concept": "Step size and approximation",
       "group": "Numerical methods",
-      "role": "Uses a small change in time to estimate the change in a quantity.",
+      "subgroup": "Foundations",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "Uses a small step to approximate change.",
       "prerequisites": [
         "Slope at a point"
       ]
@@ -37,22 +181,114 @@
     {
       "concept": "Euler’s method",
       "group": "Numerical methods",
-      "role": "Combines a slope and step size to estimate a later value.",
+      "subgroup": "Algorithms",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Uses one slope per step.",
       "prerequisites": [
         "Slope at a point",
         "Step size and approximation"
+      ]
+    },
+    {
+      "concept": "Improved Euler method",
+      "group": "Numerical methods",
+      "subgroup": "Algorithms",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Uses a predictor and averages two slopes.",
+      "prerequisites": [
+        "Euler’s method"
+      ]
+    },
+    {
+      "concept": "Runge–Kutta method",
+      "group": "Numerical methods",
+      "subgroup": "Algorithms",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Combines several estimated slopes per step.",
+      "prerequisites": [
+        "Euler’s method"
+      ]
+    },
+    {
+      "concept": "Local truncation error",
+      "group": "Numerical methods",
+      "subgroup": "Error analysis",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "One-step error starting from the exact state.",
+      "prerequisites": [
+        "Step size and approximation"
+      ]
+    },
+    {
+      "concept": "Global error",
+      "group": "Numerical methods",
+      "subgroup": "Error analysis",
+      "kind": "concept",
+      "scope_status": "unknown",
+      "role": "Total accumulated error at a target point.",
+      "prerequisites": [
+        "Local truncation error"
+      ]
+    },
+    {
+      "concept": "Laplace transform",
+      "group": "Transforms",
+      "subgroup": "Definitions",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Maps a time function to a function of a new variable.",
+      "prerequisites": [
+        "Differential equations"
+      ]
+    },
+    {
+      "concept": "Linearity of the transform",
+      "group": "Transforms",
+      "subgroup": "Properties",
+      "kind": "principle",
+      "scope_status": "unknown",
+      "role": "A transform of a linear combination is the corresponding linear combination.",
+      "prerequisites": [
+        "Laplace transform"
+      ]
+    },
+    {
+      "concept": "Transform of a derivative",
+      "group": "Transforms",
+      "subgroup": "Properties",
+      "kind": "principle",
+      "scope_status": "unknown",
+      "role": "Turns a time derivative into an algebraic expression plus initial data.",
+      "prerequisites": [
+        "Laplace transform",
+        "Rate of change"
+      ]
+    },
+    {
+      "concept": "Inverse Laplace transform",
+      "group": "Transforms",
+      "subgroup": "Solution methods",
+      "kind": "method",
+      "scope_status": "unknown",
+      "role": "Recovers a time function from a transform.",
+      "prerequisites": [
+        "Laplace transform"
       ]
     }
   ],
   "lecture_explainers": [
     {
-      "lecture": "Illustrative lecture 1",
+      "lecture": "Illustrative lecture 1: foundations",
       "concept": "Rate of change",
       "first_principles": "If y(t) represents a quantity, its average rate of change over a short interval h is [y(t + h) − y(t)] / h. The derivative is the limit of that average as h approaches zero, when the limit exists.",
       "derivation": "For y(t) = t², [y(t + h) − y(t)] / h = [(t + h)² − t²] / h = 2t + h. As h approaches zero, the rate approaches 2t.",
       "example": "At t = 3, y′(3) = 6. Over a very short interval, the value initially increases at about 6 units per unit of time.",
       "sources": [
-        "Illustrative derivation for this demonstration; not a course lecture."
+        "Illustrative material for this demonstration; not a course lecture."
       ],
       "graphic": {
         "title": "From average change to instantaneous rate",
@@ -65,13 +301,13 @@
       }
     },
     {
-      "lecture": "Illustrative lecture 2",
+      "lecture": "Illustrative lecture 4: numerical methods",
       "concept": "Euler’s method",
       "first_principles": "A differential equation y′ = f(t, y) specifies the slope at each point. Starting from a known value, we can use that slope to estimate the value a small time step later.",
       "derivation": "For a short step h, the definition of derivative suggests [y(t + h) − y(t)] / h ≈ f(t, y(t)); rearranging gives y(t + h) ≈ y(t) + h f(t, y(t)). This is an approximation, not an exact equality in general.",
       "example": "If y′ = t + y and y(0) = 1, one step of h = 0.5 gives y(0.5) ≈ 1 + 0.5(0 + 1) = 1.5.",
       "sources": [
-        "Illustrative derivation for this demonstration; not a course lecture."
+        "Illustrative material for this demonstration; not a course lecture."
       ],
       "graphic": {
         "title": "One Euler step",
@@ -80,6 +316,101 @@
           "Start at the known point (t, y)",
           "Calculate slope f(t, y)",
           "Move right by h and change y by approximately h × slope"
+        ]
+      }
+    },
+    {
+      "lecture": "Illustrative lecture 2: first-order equations",
+      "concept": "Separation of variables",
+      "first_principles": "A separable equation has the form y′ = g(t)h(y), so its time and state factors can be treated separately where h(y) is nonzero.",
+      "derivation": "Because y′ = dy/dt, dividing by h(y) and integrating gives ∫dy/h(y) = ∫g(t)dt + C on an interval where division is valid. Check any excluded constant solutions separately.",
+      "example": "For y′ = 2y and y(0) = 1, separation gives ln|y| = 2t + C; the initial condition selects y = e^(2t).",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Separation of variables",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Identify the time and state factors",
+          "Separate where the state factor is nonzero",
+          "Integrate, use the initial value, and check excluded solutions"
+        ]
+      }
+    },
+    {
+      "lecture": "Illustrative lecture 2: first-order equations",
+      "concept": "Integrating factors",
+      "first_principles": "A linear first-order equation has the form y′ + p(t)y = q(t). An integrating factor makes its left side a product derivative.",
+      "derivation": "The product rule gives (μy)′ = μy′ + μ′y. Matching μ(y′ + py) requires μ′ = pμ; therefore one choice is μ = exp(∫p(t)dt).",
+      "example": "For y′ + y = 0, μ = e^t. Thus (e^t y)′ = 0, and y(0) = 1 gives y = e^(−t).",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Integrating factors",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Start with y′ + p(t)y = q(t)",
+          "Choose μ so that μ′ = pμ",
+          "Integrate (μy)′ = μq and apply the initial condition"
+        ]
+      }
+    },
+    {
+      "lecture": "Illustrative lecture 4: numerical methods",
+      "concept": "Improved Euler method",
+      "first_principles": "Improved Euler estimates the slope at both the beginning and a predicted end point, then averages them.",
+      "derivation": "Let k₁ = f(tₙ,yₙ), predict y* = yₙ + hk₁, and take k₂ = f(tₙ+h,y*). Averaging slopes gives yₙ₊₁ = yₙ + h(k₁+k₂)/2.",
+      "example": "For y′ = t + y, y(0) = 1 and h = 0.5: k₁ = 1, y* = 1.5, k₂ = 2, so the improved estimate is 1.75.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Improved Euler method",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Calculate the starting slope k₁",
+          "Predict the next value using Euler’s method",
+          "Calculate k₂ at the prediction and average the slopes"
+        ]
+      }
+    },
+    {
+      "lecture": "Illustrative lecture 4: numerical methods",
+      "concept": "Runge–Kutta method",
+      "first_principles": "A four-stage Runge–Kutta method combines several slope estimates across a step.",
+      "derivation": "The classical method forms slopes k₁, k₂, k₃ and k₄ and weights them 1, 2, 2, 1: yₙ₊₁ = yₙ + h(k₁+2k₂+2k₃+k₄)/6. Its error-order proof requires additional assumptions and a Taylor-series argument.",
+      "example": "If y′ = 1, every stage slope is 1, so the method advances y by exactly h.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Runge–Kutta method",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Estimate slopes at the start, midpoint and end",
+          "Combine the slopes using weights 1:2:2:1",
+          "Advance the value by the weighted slope times h"
+        ]
+      }
+    },
+    {
+      "lecture": "Illustrative lecture 5: transforms",
+      "concept": "Laplace transform",
+      "first_principles": "The Laplace transform expresses a function of time as an integral depending on a parameter s, when that integral converges.",
+      "derivation": "For f(t) = e^(at), the definition gives ∫₀∞ e^(−st)e^(at)dt = ∫₀∞ e^(−(s−a)t)dt = 1/(s−a), provided s > a.",
+      "example": "With a = 2, the transform is 1/(s−2), for s > 2.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Laplace transform",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Start with the defining integral",
+          "Combine the exponentials",
+          "Integrate and state the convergence condition"
         ]
       }
     }
@@ -94,7 +425,7 @@
           "explanation": "For y′ = f(t, y), f(t, y) gives the instantaneous slope at that point.",
           "derivation": "The derivative is the limiting rate of change. Substituting the current t and y into f gives the local rate specified by the equation.",
           "sources": [
-            "Illustrative derivation for this demonstration; not a course lecture."
+            "Illustrative material for this demonstration; not a course lecture."
           ]
         },
         {
@@ -102,7 +433,7 @@
           "explanation": "The step size h is the change in t used for each estimate. The resulting estimate need not equal the exact solution.",
           "derivation": "Using slope × horizontal change to approximate vertical change gives y(next) ≈ y(current) + h × slope.",
           "sources": [
-            "Illustrative derivation for this demonstration; not a course lecture."
+            "Illustrative material for this demonstration; not a course lecture."
           ]
         }
       ],
@@ -127,16 +458,198 @@
           "Slope = 0.5 + 1.5 = 2; next y = 2.5"
         ]
       }
+    },
+    {
+      "title": "Solve a first-order linear IVP",
+      "purpose": "Recognize a linear form and use the product rule.",
+      "concepts": [
+        {
+          "name": "Integrating factors",
+          "explanation": "An integrating factor converts the linear left-hand side to a product derivative.",
+          "derivation": "Require μ′=pμ so that (μy)′=μ(y′+py).",
+          "sources": [
+            "Illustrative material for this demonstration; not a course lecture."
+          ]
+        }
+      ],
+      "graphic": {
+        "title": "Solve a first-order linear IVP",
+        "caption": "An illustrative solution strategy.",
+        "steps": [
+          "Identify p and q",
+          "Construct μ",
+          "Integrate and check"
+        ]
+      },
+      "example": {
+        "problem": "Solve y′+y=0 with y(0)=1.",
+        "steps": [
+          "Choose μ=e^t.",
+          "Then (e^t y)′=0, so e^t y=C.",
+          "Use y(0)=1 to obtain y=e^(−t), and check by substitution."
+        ]
+      },
+      "progression": {
+        "individual": "First recognize a linear equation and apply the product rule.",
+        "combined": "Then combine the factor, integration and initial condition."
+      }
+    },
+    {
+      "title": "Compare numerical methods",
+      "purpose": "Compute and compare one-step estimates.",
+      "concepts": [
+        {
+          "name": "Improved Euler method",
+          "explanation": "Use the average of the starting and predicted ending slopes.",
+          "derivation": "The predictor uses k₁, and the correction averages k₁ and k₂.",
+          "sources": [
+            "Illustrative material for this demonstration; not a course lecture."
+          ]
+        }
+      ],
+      "graphic": {
+        "title": "Compare numerical methods",
+        "caption": "An illustrative solution strategy.",
+        "steps": [
+          "Calculate k₁",
+          "Predict the endpoint",
+          "Average k₁ and k₂"
+        ]
+      },
+      "example": {
+        "problem": "For y′=t+y, y(0)=1 and h=0.5, compute one improved Euler step.",
+        "steps": [
+          "k₁=1 and the Euler predictor is 1.5.",
+          "k₂=0.5+1.5=2.",
+          "y₁=1+0.5(1+2)/2=1.75."
+        ]
+      },
+      "progression": {
+        "individual": "First compute an individual slope.",
+        "combined": "Then combine a predictor, a second slope and an error interpretation."
+      }
+    },
+    {
+      "title": "Evaluate a Laplace transform",
+      "purpose": "Use the definition and check convergence.",
+      "concepts": [
+        {
+          "name": "Laplace transform",
+          "explanation": "The transform is an improper integral whose convergence depends on s.",
+          "derivation": "For e^(at), direct integration gives 1/(s−a) when s>a.",
+          "sources": [
+            "Illustrative material for this demonstration; not a course lecture."
+          ]
+        }
+      ],
+      "graphic": {
+        "title": "Evaluate a Laplace transform",
+        "caption": "An illustrative solution strategy.",
+        "steps": [
+          "Write the defining integral",
+          "Combine exponents",
+          "Evaluate and check convergence"
+        ]
+      },
+      "example": {
+        "problem": "Find the transform of e^(2t).",
+        "steps": [
+          "Combine exponentials in the defining integral.",
+          "Integrate e^(−(s−2)t) over [0,∞).",
+          "The result is 1/(s−2) for s>2."
+        ]
+      },
+      "progression": {
+        "individual": "First practise exponent laws and improper integrals.",
+        "combined": "Then combine convergence, transform properties and an IVP."
+      }
     }
   ],
   "gaps": [
-    "This is an illustrative example. A real lesson must use the student’s reviewed exam scope and cite actual course sources."
+    "This fictional sample is intentionally incomplete. It maps concepts beyond the examples and marks lecture coverage partial. A real lesson must inspect every relevant source and disclose unreviewed material."
   ],
   "relationships": [
     {
       "from": "Euler’s method",
       "to": "Differential equations",
       "label": "approximates solutions of"
+    },
+    {
+      "from": "Matrix exponential",
+      "to": "Eigenvalues and eigenvectors",
+      "label": "can be evaluated using"
+    },
+    {
+      "from": "Inverse Laplace transform",
+      "to": "Initial value problems",
+      "label": "helps recover solutions to"
+    }
+  ],
+  "source_coverage": [
+    {
+      "lecture": "Illustrative lecture 1: foundations",
+      "source": "Illustrative material for this demonstration; not a course lecture.",
+      "status": "partial",
+      "concepts": [
+        "Rate of change",
+        "Differential equations",
+        "Initial value problems",
+        "Linear versus nonlinear",
+        "Existence and uniqueness"
+      ],
+      "notes": "Sample explains the rate of change in detail; other concepts need full lecture explanations."
+    },
+    {
+      "lecture": "Illustrative lecture 2: first-order equations",
+      "source": "Illustrative material for this demonstration; not a course lecture.",
+      "status": "partial",
+      "concepts": [
+        "Separation of variables",
+        "Integrating factors",
+        "Autonomous equations",
+        "Equilibria and stability"
+      ],
+      "notes": "Some qualitative concepts are mapped but not explained in depth in this sample."
+    },
+    {
+      "lecture": "Illustrative lecture 3: systems",
+      "source": "Illustrative material for this demonstration; not a course lecture.",
+      "status": "partial",
+      "concepts": [
+        "Linear systems",
+        "Eigenvalues and eigenvectors",
+        "Repeated eigenvalues",
+        "Matrix exponential",
+        "Phase portraits"
+      ],
+      "notes": "The map is illustrative; full lecture explanations are omitted."
+    },
+    {
+      "lecture": "Illustrative lecture 4: numerical methods",
+      "source": "Illustrative material for this demonstration; not a course lecture.",
+      "status": "partial",
+      "concepts": [
+        "Slope at a point",
+        "Step size and approximation",
+        "Euler’s method",
+        "Improved Euler method",
+        "Runge–Kutta method",
+        "Local truncation error",
+        "Global error"
+      ],
+      "notes": "The sample explains several methods but omits formal error proofs."
+    },
+    {
+      "lecture": "Illustrative lecture 5: transforms",
+      "source": "Illustrative material for this demonstration; not a course lecture.",
+      "status": "partial",
+      "concepts": [
+        "Laplace transform",
+        "Linearity of the transform",
+        "Transform of a derivative",
+        "Inverse Laplace transform"
+      ],
+      "notes": "Only the transform definition is explained in depth in this example."
     }
   ]
 }

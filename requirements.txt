@@ -1,2 +1,5 @@
 # PDF text extraction. Scanned/image-only PDFs still need separate OCR.
 pypdf>=4,<7
+
+# Offline LaTeX rendering for lesson pages.
+latex2mathml>=3.77,<4

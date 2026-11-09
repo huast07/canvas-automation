@@ -303,9 +303,9 @@
     {
       "lecture": "Illustrative lecture 4: numerical methods",
       "concept": "Euler’s method",
-      "first_principles": "A differential equation y′ = f(t, y) specifies the slope at each point. Starting from a known value, we can use that slope to estimate the value a small time step later.",
-      "derivation": "For a short step h, the definition of derivative suggests [y(t + h) − y(t)] / h ≈ f(t, y(t)); rearranging gives y(t + h) ≈ y(t) + h f(t, y(t)). This is an approximation, not an exact equality in general.",
-      "example": "If y′ = t + y and y(0) = 1, one step of h = 0.5 gives y(0.5) ≈ 1 + 0.5(0 + 1) = 1.5.",
+      "first_principles": "A differential equation \\(y\\prime=f(t,y)\\) specifies the slope at each point. Starting from a known value, use that slope to estimate the value a small time step later.",
+      "derivation": "For a short step \\(h\\), the definition of derivative suggests \\[\\frac{y(t+h)-y(t)}{h}\\approx f(t,y(t)).\\] Rearranging gives \\(y(t+h)\\approx y(t)+hf(t,y(t))\\), an approximation in general.",
+      "example": "If \\(y\\prime=t+y\\) and \\(y(0)=1\\), one step of \\(h=0.5\\) gives \\(y(0.5)\\approx1+0.5(0+1)=1.5\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -322,9 +322,9 @@
     {
       "lecture": "Illustrative lecture 2: first-order equations",
       "concept": "Separation of variables",
-      "first_principles": "A separable equation has the form y′ = g(t)h(y), so its time and state factors can be treated separately where h(y) is nonzero.",
-      "derivation": "Because y′ = dy/dt, dividing by h(y) and integrating gives ∫dy/h(y) = ∫g(t)dt + C on an interval where division is valid. Check any excluded constant solutions separately.",
-      "example": "For y′ = 2y and y(0) = 1, separation gives ln|y| = 2t + C; the initial condition selects y = e^(2t).",
+      "first_principles": "A separable equation has the form \\(y\\prime=g(t)h(y)\\); its factors can be treated separately where \\(h(y)\\ne0\\).",
+      "derivation": "Since \\(y\\prime=dy/dt\\), division and integration give \\[\\int\\frac{dy}{h(y)}=\\int g(t)\\,dt+C\\] on an interval where division is valid. Check excluded constant solutions separately.",
+      "example": "For \\(y\\prime=2y\\) and \\(y(0)=1\\), separation gives \\(\\ln|y|=2t+C\\); the initial condition selects \\(y=e^{2t}\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -341,9 +341,9 @@
     {
       "lecture": "Illustrative lecture 2: first-order equations",
       "concept": "Integrating factors",
-      "first_principles": "A linear first-order equation has the form y′ + p(t)y = q(t). An integrating factor makes its left side a product derivative.",
-      "derivation": "The product rule gives (μy)′ = μy′ + μ′y. Matching μ(y′ + py) requires μ′ = pμ; therefore one choice is μ = exp(∫p(t)dt).",
-      "example": "For y′ + y = 0, μ = e^t. Thus (e^t y)′ = 0, and y(0) = 1 gives y = e^(−t).",
+      "first_principles": "A linear first-order equation has the form \\(y\\prime+p(t)y=q(t)\\). An integrating factor makes its left side a product derivative.",
+      "derivation": "The product rule gives \\((\\mu y)\\prime=\\mu y\\prime+\\mu\\prime y\\). Matching \\(\\mu(y\\prime+py)\\) requires \\(\\mu\\prime=p\\mu\\); one choice is \\[\\mu=\\exp\\left(\\int p(t)\\,dt\\right).\\]",
+      "example": "For \\(y\\prime+y=0\\), choose \\(\\mu=e^t\\). Thus \\((e^ty)\\prime=0\\), and \\(y(0)=1\\) gives \\(y=e^{-t}\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -361,8 +361,8 @@
       "lecture": "Illustrative lecture 4: numerical methods",
       "concept": "Improved Euler method",
       "first_principles": "Improved Euler estimates the slope at both the beginning and a predicted end point, then averages them.",
-      "derivation": "Let k₁ = f(tₙ,yₙ), predict y* = yₙ + hk₁, and take k₂ = f(tₙ+h,y*). Averaging slopes gives yₙ₊₁ = yₙ + h(k₁+k₂)/2.",
-      "example": "For y′ = t + y, y(0) = 1 and h = 0.5: k₁ = 1, y* = 1.5, k₂ = 2, so the improved estimate is 1.75.",
+      "derivation": "Let \\(k_1=f(t_n,y_n)\\), predict \\(y^*=y_n+hk_1\\), and take \\(k_2=f(t_n+h,y^*)\\). Averaging slopes gives \\[y_{n+1}=y_n+\\frac{h}{2}(k_1+k_2).\\]",
+      "example": "For \\(y\\prime=t+y\\), \\(y(0)=1\\), and \\(h=0.5\\): \\(k_1=1\\), \\(y^*=1.5\\), \\(k_2=2\\), so the improved estimate is \\(1.75\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -380,8 +380,8 @@
       "lecture": "Illustrative lecture 4: numerical methods",
       "concept": "Runge–Kutta method",
       "first_principles": "A four-stage Runge–Kutta method combines several slope estimates across a step.",
-      "derivation": "The classical method forms slopes k₁, k₂, k₃ and k₄ and weights them 1, 2, 2, 1: yₙ₊₁ = yₙ + h(k₁+2k₂+2k₃+k₄)/6. Its error-order proof requires additional assumptions and a Taylor-series argument.",
-      "example": "If y′ = 1, every stage slope is 1, so the method advances y by exactly h.",
+      "derivation": "The classical method uses slopes \\(k_1,k_2,k_3,k_4\\) with weights \\(1,2,2,1\\): \\[y_{n+1}=y_n+\\frac{h}{6}(k_1+2k_2+2k_3+k_4).\\] Its error-order proof requires additional assumptions and a Taylor-series argument.",
+      "example": "If \\(y\\prime=1\\), every stage slope is \\(1\\), so the method advances \\(y\\) by exactly \\(h\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -398,9 +398,9 @@
     {
       "lecture": "Illustrative lecture 5: transforms",
       "concept": "Laplace transform",
-      "first_principles": "The Laplace transform expresses a function of time as an integral depending on a parameter s, when that integral converges.",
-      "derivation": "For f(t) = e^(at), the definition gives ∫₀∞ e^(−st)e^(at)dt = ∫₀∞ e^(−(s−a)t)dt = 1/(s−a), provided s > a.",
-      "example": "With a = 2, the transform is 1/(s−2), for s > 2.",
+      "first_principles": "The Laplace transform expresses a function of time as an integral depending on \\(s\\), when that integral converges.",
+      "derivation": "For \\(f(t)=e^{at}\\), the definition gives \\[\\int_0^\\infty e^{-st}e^{at}\\,dt=\\frac{1}{s-a},\\qquad s>a.\\]",
+      "example": "With \\(a=2\\), the transform is \\(1/(s-2)\\), for \\(s>2\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -438,11 +438,11 @@
         }
       ],
       "example": {
-        "problem": "For y′ = t + y, y(0) = 1, estimate y(1) using two Euler steps of h = 0.5.",
+        "problem": "For \\(y\\prime=t+y\\), \\(y(0)=1\\), estimate \\(y(1)\\) using two Euler steps of \\(h=0.5\\).",
         "steps": [
-          "At t = 0 and y = 1, the slope is 0 + 1 = 1, so y₁ = 1 + 0.5(1) = 1.5.",
-          "At t = 0.5 and y₁ = 1.5, the slope is 0.5 + 1.5 = 2, so y₂ = 1.5 + 0.5(2) = 2.5.",
-          "After two steps t = 1, giving the estimate y(1) ≈ 2.5; this is not the exact value."
+          "At \\(t=0\\) and \\(y=1\\), the slope is \\(1\\), so \\(y_1=1+0.5(1)=1.5\\).",
+          "At \\(t=0.5\\) and \\(y_1=1.5\\), the slope is \\(2\\), so \\(y_2=1.5+0.5(2)=2.5\\).",
+          "After two steps \\(t=1\\), giving \\(y(1)\\approx2.5\\); this is not the exact value."
         ]
       },
       "progression": {
@@ -466,7 +466,7 @@
         {
           "name": "Integrating factors",
           "explanation": "An integrating factor converts the linear left-hand side to a product derivative.",
-          "derivation": "Require μ′=pμ so that (μy)′=μ(y′+py).",
+          "derivation": "Require \\(\\mu\\prime=p\\mu\\) so that \\((\\mu y)\\prime=\\mu(y\\prime+py)\\).",
           "sources": [
             "Illustrative material for this demonstration; not a course lecture."
           ]
@@ -482,11 +482,11 @@
         ]
       },
       "example": {
-        "problem": "Solve y′+y=0 with y(0)=1.",
+        "problem": "Solve \\(y\\prime+y=0\\) with \\(y(0)=1\\).",
         "steps": [
-          "Choose μ=e^t.",
-          "Then (e^t y)′=0, so e^t y=C.",
-          "Use y(0)=1 to obtain y=e^(−t), and check by substitution."
+          "Choose \\(\\mu=e^t\\).",
+          "Then \\((e^ty)\\prime=0\\), so \\(e^ty=C\\).",
+          "Use \\(y(0)=1\\) to obtain \\(y=e^{-t}\\), and check by substitution."
         ]
       },
       "progression": {
@@ -696,10 +696,10 @@
     {
       "concept": "Separation of variables",
       "status": "explained",
-      "first_principles": "A separable equation has the form y′ = g(t)h(y), so its time and state factors can be treated separately where h(y) is nonzero.",
+      "first_principles": "A separable equation has the form \\(y\\prime=g(t)h(y)\\); its factors can be treated separately where \\(h(y)\\ne0\\).",
       "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
-      "derivation": "Because y′ = dy/dt, dividing by h(y) and integrating gives ∫dy/h(y) = ∫g(t)dt + C on an interval where division is valid. Check any excluded constant solutions separately.",
-      "example": "For y′ = 2y and y(0) = 1, separation gives ln|y| = 2t + C; the initial condition selects y = e^(2t).",
+      "derivation": "Since \\(y\\prime=dy/dt\\), division and integration give \\[\\int\\frac{dy}{h(y)}=\\int g(t)\\,dt+C\\] on an interval where division is valid. Check excluded constant solutions separately.",
+      "example": "For \\(y\\prime=2y\\) and \\(y(0)=1\\), separation gives \\(\\ln|y|=2t+C\\); the initial condition selects \\(y=e^{2t}\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -716,10 +716,10 @@
     {
       "concept": "Integrating factors",
       "status": "explained",
-      "first_principles": "A linear first-order equation has the form y′ + p(t)y = q(t). An integrating factor makes its left side a product derivative.",
+      "first_principles": "A linear first-order equation has the form \\(y\\prime+p(t)y=q(t)\\). An integrating factor makes its left side a product derivative.",
       "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
-      "derivation": "The product rule gives (μy)′ = μy′ + μ′y. Matching μ(y′ + py) requires μ′ = pμ; therefore one choice is μ = exp(∫p(t)dt).",
-      "example": "For y′ + y = 0, μ = e^t. Thus (e^t y)′ = 0, and y(0) = 1 gives y = e^(−t).",
+      "derivation": "The product rule gives \\((\\mu y)\\prime=\\mu y\\prime+\\mu\\prime y\\). Matching \\(\\mu(y\\prime+py)\\) requires \\(\\mu\\prime=p\\mu\\); one choice is \\[\\mu=\\exp\\left(\\int p(t)\\,dt\\right).\\]",
+      "example": "For \\(y\\prime+y=0\\), choose \\(\\mu=e^t\\). Thus \\((e^ty)\\prime=0\\), and \\(y(0)=1\\) gives \\(y=e^{-t}\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -781,10 +781,10 @@
     {
       "concept": "Euler’s method",
       "status": "explained",
-      "first_principles": "A differential equation y′ = f(t, y) specifies the slope at each point. Starting from a known value, we can use that slope to estimate the value a small time step later.",
+      "first_principles": "A differential equation \\(y\\prime=f(t,y)\\) specifies the slope at each point. Starting from a known value, use that slope to estimate the value a small time step later.",
       "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
-      "derivation": "For a short step h, the definition of derivative suggests [y(t + h) − y(t)] / h ≈ f(t, y(t)); rearranging gives y(t + h) ≈ y(t) + h f(t, y(t)). This is an approximation, not an exact equality in general.",
-      "example": "If y′ = t + y and y(0) = 1, one step of h = 0.5 gives y(0.5) ≈ 1 + 0.5(0 + 1) = 1.5.",
+      "derivation": "For a short step \\(h\\), the definition of derivative suggests \\[\\frac{y(t+h)-y(t)}{h}\\approx f(t,y(t)).\\] Rearranging gives \\(y(t+h)\\approx y(t)+hf(t,y(t))\\), an approximation in general.",
+      "example": "If \\(y\\prime=t+y\\) and \\(y(0)=1\\), one step of \\(h=0.5\\) gives \\(y(0.5)\\approx1+0.5(0+1)=1.5\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -803,8 +803,8 @@
       "status": "explained",
       "first_principles": "Improved Euler estimates the slope at both the beginning and a predicted end point, then averages them.",
       "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
-      "derivation": "Let k₁ = f(tₙ,yₙ), predict y* = yₙ + hk₁, and take k₂ = f(tₙ+h,y*). Averaging slopes gives yₙ₊₁ = yₙ + h(k₁+k₂)/2.",
-      "example": "For y′ = t + y, y(0) = 1 and h = 0.5: k₁ = 1, y* = 1.5, k₂ = 2, so the improved estimate is 1.75.",
+      "derivation": "Let \\(k_1=f(t_n,y_n)\\), predict \\(y^*=y_n+hk_1\\), and take \\(k_2=f(t_n+h,y^*)\\). Averaging slopes gives \\[y_{n+1}=y_n+\\frac{h}{2}(k_1+k_2).\\]",
+      "example": "For \\(y\\prime=t+y\\), \\(y(0)=1\\), and \\(h=0.5\\): \\(k_1=1\\), \\(y^*=1.5\\), \\(k_2=2\\), so the improved estimate is \\(1.75\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -823,8 +823,8 @@
       "status": "explained",
       "first_principles": "A four-stage Runge–Kutta method combines several slope estimates across a step.",
       "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
-      "derivation": "The classical method forms slopes k₁, k₂, k₃ and k₄ and weights them 1, 2, 2, 1: yₙ₊₁ = yₙ + h(k₁+2k₂+2k₃+k₄)/6. Its error-order proof requires additional assumptions and a Taylor-series argument.",
-      "example": "If y′ = 1, every stage slope is 1, so the method advances y by exactly h.",
+      "derivation": "The classical method uses slopes \\(k_1,k_2,k_3,k_4\\) with weights \\(1,2,2,1\\): \\[y_{n+1}=y_n+\\frac{h}{6}(k_1+2k_2+2k_3+k_4).\\] Its error-order proof requires additional assumptions and a Taylor-series argument.",
+      "example": "If \\(y\\prime=1\\), every stage slope is \\(1\\), so the method advances \\(y\\) by exactly \\(h\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],
@@ -851,10 +851,10 @@
     {
       "concept": "Laplace transform",
       "status": "explained",
-      "first_principles": "The Laplace transform expresses a function of time as an integral depending on a parameter s, when that integral converges.",
+      "first_principles": "The Laplace transform expresses a function of time as an integral depending on \\(s\\), when that integral converges.",
       "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
-      "derivation": "For f(t) = e^(at), the definition gives ∫₀∞ e^(−st)e^(at)dt = ∫₀∞ e^(−(s−a)t)dt = 1/(s−a), provided s > a.",
-      "example": "With a = 2, the transform is 1/(s−2), for s > 2.",
+      "derivation": "For \\(f(t)=e^{at}\\), the definition gives \\[\\int_0^\\infty e^{-st}e^{at}\\,dt=\\frac{1}{s-a},\\qquad s>a.\\]",
+      "example": "With \\(a=2\\), the transform is \\(1/(s-2)\\), for \\(s>2\\).",
       "sources": [
         "Illustrative material for this demonstration; not a course lecture."
       ],

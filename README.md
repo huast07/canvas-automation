@@ -54,6 +54,7 @@ The Canvas API and permissions vary by institution; the workflows have not been 
 ```sh
 git clone https://github.com/huast07/canvas-automation.git
 cd canvas-automation
+python3 -m pip install -r requirements.txt
 python3 quercus.py --help
 ```
 
@@ -217,4 +218,4 @@ python3 lesson_ready.py /path/to/generated-lesson.html --open
 
 The button signals the waiting Codex session that you are ready; return to the chat to begin progressive tutoring. For each sourced problem type, Codex starts with individual concepts and builds toward combined, midterm-level problems. Selecting the button does not establish mastery. If the local server cannot run or times out, open the saved HTML directly and tell Codex in chat when you are ready. The local URL is temporary and stops working when the listener ends.
 
-The HTML is self-contained and renders input as text; it does not automatically verify the lesson’s claims, sources or mathematical reasoning. Review them against the original course materials. Equations can be written with readable Unicode or plain-text notation. If opening the browser fails, open the printed file path manually.
+The HTML is self-contained and renders input as text; it does not automatically verify the lesson’s claims, sources or mathematical reasoning. Review them against the original course materials. Write LaTeX equations in lesson text between `\(` and `\)` for inline math or `\[` and `\]` for displayed equations. The renderer converts these locally to browser-native MathML; no network connection or external scripts are needed. Existing plain-text equations remain plain text until the lesson is regenerated with LaTeX markup. Diagram labels remain plain text. If opening the browser fails, open the printed file path manually.

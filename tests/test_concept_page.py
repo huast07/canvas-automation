@@ -115,6 +115,19 @@ class ConceptPageTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             concept_page.validate(lesson)
 
+    def test_latex_is_rendered_offline_and_untrusted_math_is_sanitized(self):
+        lesson = copy.deepcopy(self.example)
+        lesson['lecture_explainers'][0]['derivation'] = r'Rate: \(\frac{dy}{dt}\). \[y=x^2\]'
+        page = concept_page.render(lesson)
+        self.assertIn('<mfrac>', page)
+        self.assertIn('display="block"', page)
+        self.assertNotIn(r'\frac{dy}', page)
+        safe = concept_page.math_text(r'\(\href{javascript:alert(1)}{x}\)')
+        self.assertNotIn('href=', safe)
+        self.assertNotIn('javascript:', safe)
+        with self.assertRaises(ValueError):
+            concept_page.math_text(r'\(\text{<script>}\)')
+
     def test_missing_sources_or_combined_progression_are_rejected(self):
         lesson = copy.deepcopy(self.example)
         lesson['categories'][0]['concepts'][0]['sources'] = []

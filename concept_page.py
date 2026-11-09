@@ -4,6 +4,8 @@ import argparse
 from datetime import datetime
 from html import escape
 import json
+import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import sys
 import textwrap
@@ -175,6 +177,50 @@ def text(value):
     return escape(str(value), quote=True).replace('\n', '<br>\n')
 
 
+MATH_PATTERN = re.compile(r'(\\\[(.*?)\\\]|\\\((.*?)\\\))', re.DOTALL)
+MATH_NS = 'http://www.w3.org/1998/Math/MathML'
+MATH_TAGS = {'math', 'mrow', 'mi', 'mn', 'mo', 'mtext', 'mspace', 'ms', 'mfrac',
+             'msqrt', 'mroot', 'mstyle', 'merror', 'mpadded', 'mphantom', 'mfenced',
+             'menclose', 'msub', 'msup', 'msubsup', 'munder', 'mover', 'munderover',
+             'mmultiscripts', 'mprescripts', 'none', 'mtable', 'mtr', 'mtd',
+             'maligngroup', 'malignmark', 'semantics', 'annotation'}
+MATH_ATTRS = {'display', 'mathvariant', 'displaystyle', 'scriptlevel', 'stretchy',
+              'fence', 'separator', 'accent', 'accentunder', 'movablelimits',
+              'form', 'lspace', 'rspace', 'width', 'height', 'depth', 'encoding',
+              'columnalign', 'rowalign', 'columnspacing', 'rowspacing', 'columnspan', 'rowspan'}
+ET.register_namespace('', MATH_NS)
+
+
+def math_text(value):
+    """Render explicitly delimited LaTeX to sanitized, offline MathML."""
+    value = str(value)
+    parts, position = [], 0
+    for match in MATH_PATTERN.finditer(value):
+        parts.append(text(value[position:match.start()]))
+        try:
+            from latex2mathml.converter import convert
+        except ImportError as exc:
+            raise ValueError('LaTeX rendering requires latex2mathml; run python3 -m pip install -r requirements.txt') from exc
+        formula = match.group(2) if match.group(2) is not None else match.group(3)
+        try:
+            raw = convert(formula, display='block' if match.group(2) is not None else 'inline')
+            if '<!' in raw:
+                raise ValueError('Markup declarations are not allowed in math')
+            root = ET.fromstring(raw)
+            for node in root.iter():
+                if not node.tag.startswith('{' + MATH_NS + '}') or node.tag.split('}', 1)[1] not in MATH_TAGS:
+                    raise ValueError('Unsupported markup in math')
+                for attr in list(node.attrib):
+                    if attr not in MATH_ATTRS:
+                        del node.attrib[attr]
+            parts.append(ET.tostring(root, encoding='unicode'))
+        except Exception as exc:
+            raise ValueError(f'Could not render LaTeX formula: {formula}') from exc
+        position = match.end()
+    parts.append(text(value[position:]))
+    return ''.join(parts)
+
+
 PALETTE = ['#d7edf1', '#f6e4bf', '#e4e3f5', '#d8efdf', '#f4dedc', '#dce8f7']
 
 
@@ -254,7 +300,7 @@ def render_graphic(graphic, identifier):
         elements.append(f'<rect x="20" y="{top}" width="660" height="{height}" rx="10" fill="#e5f1f3" stroke="#8eb9c0"/><title>{escape(step)}</title><text class="map-label" x="36" y="{top+27}">{svg_lines(step,36,top+27,50,len(row))}</text>')
         if index < len(rows)-1:
             elements.append(f'<path d="M 350 {top+height} V {positions[index+1][0]-5}" stroke="#367887" stroke-width="2" fill="none" marker-end="url(#{identifier}-arrow)"/>')
-    return f'<figure class="explain-graphic"><figcaption><strong>{text(graphic["title"])}</strong><br>{text(graphic["caption"])}</figcaption><svg viewBox="0 0 700 {y-10}" role="img" aria-label="{escape(graphic["title"], quote=True)}: {escape(graphic["caption"], quote=True)}"><defs><marker id="{identifier}-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#367887"/></marker></defs>{"".join(elements)}</svg><ol class="sr-only">{"".join(f"<li>{text(step)}</li>" for step in steps)}</ol></figure>'
+    return f'<figure class="explain-graphic"><figcaption><strong>{text(graphic["title"])}</strong><br>{text(graphic["caption"])}</figcaption><svg viewBox="0 0 700 {y-10}" role="img" aria-label="{escape(graphic["title"], quote=True)}: {escape(graphic["caption"], quote=True)}"><defs><marker id="{identifier}-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#367887"/></marker></defs>{"".join(elements)}</svg><ol class="sr-only">{"".join(f"<li>{math_text(step)}</li>" for step in steps)}</ol></figure>'
 
 
 def render(data, concept_hrefs=None):
@@ -283,7 +329,7 @@ def render(data, concept_hrefs=None):
         title = text(lecture['concept'])
         if href:
             title = f'<a href="{escape(href, quote=True)}">{title}</a>'
-        article = f'<article class="concept"><h4>{title}</h4><p>{text(lecture["first_principles"])}</p><p><strong>Reasoning / derivation.</strong> {text(lecture["derivation"])}</p><p><strong>Example.</strong> {text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{index}")}<div class="sources"><strong>Sources</strong><ul>{refs}</ul></div></article>'
+        article = f'<article class="concept"><h4>{title}</h4><p>{math_text(lecture["first_principles"])}</p><p><strong>Reasoning / derivation.</strong> {math_text(lecture["derivation"])}</p><p><strong>Example.</strong> {math_text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{index}")}<div class="sources"><strong>Sources</strong><ul>{refs}</ul></div></article>'
         lecture_groups.setdefault(lecture['lecture'], []).append(article)
     lectures = [f'<div class="lecture-group"><h3>{text(name)}</h3>{"".join(articles)}</div>' for name, articles in lecture_groups.items()]
     sections = []
@@ -291,11 +337,11 @@ def render(data, concept_hrefs=None):
         concepts = []
         for concept in category['concepts']:
             sources = ''.join(f'<li>{text(source)}</li>' for source in concept['sources'])
-            concepts.append(f'<article class="concept"><h3>{text(concept["name"])}</h3><p>{text(concept["explanation"])}</p><p><strong>Reasoning / derivation.</strong> {text(concept["derivation"])}</p><div class="sources"><strong>Sources</strong><ul>{sources}</ul></div></article>')
+            concepts.append(f'<article class="concept"><h3>{text(concept["name"])}</h3><p>{math_text(concept["explanation"])}</p><p><strong>Reasoning / derivation.</strong> {math_text(concept["derivation"])}</p><div class="sources"><strong>Sources</strong><ul>{sources}</ul></div></article>')
         example = category['example']
-        steps = ''.join(f'<li>{text(step)}</li>' for step in example['steps'])
+        steps = ''.join(f'<li>{math_text(step)}</li>' for step in example['steps'])
         progression = category['progression']
-        sections.append(f'''<section id="category-{i}" class="category"><p class="eyebrow">QUESTION CATEGORY {i:02}</p><h2>{text(category['title'])}</h2><p class="lead">{text(category['purpose'])}</p><div class="concept-list">{''.join(concepts)}</div>{render_graphic(category['graphic'], f'category-{i}')}<div class="example"><h3>Worked example</h3><p>{text(example['problem'])}</p><ol>{steps}</ol></div><div class="progression"><h3>Practice progression</h3><p><strong>Start with one concept.</strong> {text(progression['individual'])}</p><p><strong>Combine concepts.</strong> {text(progression['combined'])}</p></div></section>''')
+        sections.append(f'''<section id="category-{i}" class="category"><p class="eyebrow">QUESTION CATEGORY {i:02}</p><h2>{text(category['title'])}</h2><p class="lead">{text(category['purpose'])}</p><div class="concept-list">{''.join(concepts)}</div>{render_graphic(category['graphic'], f'category-{i}')}<div class="example"><h3>Worked example</h3><p>{math_text(example['problem'])}</p><ol>{steps}</ol></div><div class="progression"><h3>Practice progression</h3><p><strong>Start with one concept.</strong> {math_text(progression['individual'])}</p><p><strong>Combine concepts.</strong> {math_text(progression['combined'])}</p></div></section>''')
     gaps = ''.join(f'<li>{text(gap)}</li>' for gap in data.get('gaps', [])) or '<li>No additional gaps were recorded; verify the source inventory.</li>'
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>{text(data['course'])} — exam concepts</title>
@@ -313,16 +359,16 @@ def render_concept(data, concept, parent_name, concept_hrefs):
     sections = []
     if detail and detail['status'] == 'explained':
         sources = ''.join(f'<li>{text(source)}</li>' for source in detail['sources'])
-        sections.append(f'<section><h2>From first principles</h2><p>{text(detail["first_principles"])}</p><h3>Assumptions</h3><p>{text(detail["assumptions"])}</p><h3>Reasoning / derivation</h3><p>{text(detail["derivation"])}</p><h3>Example</h3><p>{text(detail["example"])}</p>{render_graphic(detail["graphic"], "detail")}<h3>Sources</h3><ul>{sources}</ul></section>')
+        sections.append(f'<section><h2>From first principles</h2><p>{math_text(detail["first_principles"])}</p><h3>Assumptions</h3><p>{math_text(detail["assumptions"])}</p><h3>Reasoning / derivation</h3><p>{math_text(detail["derivation"])}</p><h3>Example</h3><p>{math_text(detail["example"])}</p>{render_graphic(detail["graphic"], "detail")}<h3>Sources</h3><ul>{sources}</ul></section>')
     elif detail and detail['status'] == 'missing':
         sections.append(f'<section class="warning"><h2>Explanation unavailable</h2><p>{text(detail["reason"])}</p></section>')
     for i, lecture in enumerate(lectures, 1):
         refs = ''.join(f'<li>{text(source)}</li>' for source in lecture['sources'])
-        sections.append(f'<section><p class="eyebrow">{text(lecture["lecture"])}</p><h2>Lecture explanation</h2><p>{text(lecture["first_principles"])}</p><h3>Reasoning / derivation</h3><p>{text(lecture["derivation"])}</p><h3>Example</h3><p>{text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{i}")}<h3>Sources</h3><ul>{refs}</ul></section>')
+        sections.append(f'<section><p class="eyebrow">{text(lecture["lecture"])}</p><h2>Lecture explanation</h2><p>{math_text(lecture["first_principles"])}</p><h3>Reasoning / derivation</h3><p>{math_text(lecture["derivation"])}</p><h3>Example</h3><p>{math_text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{i}")}<h3>Sources</h3><ul>{refs}</ul></section>')
     for i, (category, entry) in enumerate(categories, 1):
         refs = ''.join(f'<li>{text(source)}</li>' for source in entry['sources'])
-        steps = ''.join(f'<li>{text(step)}</li>' for step in category['example']['steps'])
-        sections.append(f'<section><p class="eyebrow">PROBLEM TYPE</p><h2>{text(category["title"])}</h2><p>{text(entry["explanation"])}</p><h3>Reasoning / derivation</h3><p>{text(entry["derivation"])}</p>{render_graphic(category["graphic"], f"category-{i}")}<h3>Worked example</h3><p>{text(category["example"]["problem"])}</p><ol>{steps}</ol><h3>Sources</h3><ul>{refs}</ul></section>')
+        steps = ''.join(f'<li>{math_text(step)}</li>' for step in category['example']['steps'])
+        sections.append(f'<section><p class="eyebrow">PROBLEM TYPE</p><h2>{text(category["title"])}</h2><p>{math_text(entry["explanation"])}</p><h3>Reasoning / derivation</h3><p>{math_text(entry["derivation"])}</p>{render_graphic(category["graphic"], f"category-{i}")}<h3>Worked example</h3><p>{math_text(category["example"]["problem"])}</p><ol>{steps}</ol><h3>Sources</h3><ul>{refs}</ul></section>')
     if not sections:
         sections.append('<section class="warning"><h2>Detailed explanation not yet available</h2><p>This concept was identified in the map but no verified first-principles explanation was supplied. Check the source inventory and ask for missing material.</p></section>')
     related = []

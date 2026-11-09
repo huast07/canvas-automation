@@ -1,0 +1,142 @@
+{
+  "course": "Illustrative course: Differential equations",
+  "exam": "Example concepts page — not a real course scope",
+  "exam_id": "example-exam",
+  "overview": "This demonstration shows how a concepts page can connect prerequisites, lecture ideas and problem types before guided practice. The content and source labels are illustrative.",
+  "knowledge_map": [
+    {
+      "concept": "Rate of change",
+      "group": "Foundations",
+      "role": "Describes how quickly a quantity changes at an instant.",
+      "prerequisites": []
+    },
+    {
+      "concept": "Differential equations",
+      "group": "Foundations",
+      "role": "Connect a quantity to its rate of change.",
+      "prerequisites": [
+        "Rate of change"
+      ]
+    },
+    {
+      "concept": "Slope at a point",
+      "group": "Numerical methods",
+      "role": "Evaluates the rate at the current point.",
+      "prerequisites": [
+        "Differential equations"
+      ]
+    },
+    {
+      "concept": "Step size and approximation",
+      "group": "Numerical methods",
+      "role": "Uses a small change in time to estimate the change in a quantity.",
+      "prerequisites": [
+        "Slope at a point"
+      ]
+    },
+    {
+      "concept": "Euler’s method",
+      "group": "Numerical methods",
+      "role": "Combines a slope and step size to estimate a later value.",
+      "prerequisites": [
+        "Slope at a point",
+        "Step size and approximation"
+      ]
+    }
+  ],
+  "lecture_explainers": [
+    {
+      "lecture": "Illustrative lecture 1",
+      "concept": "Rate of change",
+      "first_principles": "If y(t) represents a quantity, its average rate of change over a short interval h is [y(t + h) − y(t)] / h. The derivative is the limit of that average as h approaches zero, when the limit exists.",
+      "derivation": "For y(t) = t², [y(t + h) − y(t)] / h = [(t + h)² − t²] / h = 2t + h. As h approaches zero, the rate approaches 2t.",
+      "example": "At t = 3, y′(3) = 6. Over a very short interval, the value initially increases at about 6 units per unit of time.",
+      "sources": [
+        "Illustrative derivation for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "From average change to instantaneous rate",
+        "caption": "The derivative is the limit of the average rate as the interval becomes small.",
+        "steps": [
+          "Average rate: [y(t + h) − y(t)] / h",
+          "For y(t) = t²: the quotient simplifies to 2t + h",
+          "As h approaches 0, the derivative is 2t"
+        ]
+      }
+    },
+    {
+      "lecture": "Illustrative lecture 2",
+      "concept": "Euler’s method",
+      "first_principles": "A differential equation y′ = f(t, y) specifies the slope at each point. Starting from a known value, we can use that slope to estimate the value a small time step later.",
+      "derivation": "For a short step h, the definition of derivative suggests [y(t + h) − y(t)] / h ≈ f(t, y(t)); rearranging gives y(t + h) ≈ y(t) + h f(t, y(t)). This is an approximation, not an exact equality in general.",
+      "example": "If y′ = t + y and y(0) = 1, one step of h = 0.5 gives y(0.5) ≈ 1 + 0.5(0 + 1) = 1.5.",
+      "sources": [
+        "Illustrative derivation for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "One Euler step",
+        "caption": "Use the current slope to estimate the next point.",
+        "steps": [
+          "Start at the known point (t, y)",
+          "Calculate slope f(t, y)",
+          "Move right by h and change y by approximately h × slope"
+        ]
+      }
+    }
+  ],
+  "categories": [
+    {
+      "title": "Estimating a solution with Euler’s method",
+      "purpose": "Identify the current point, calculate its slope, and take one or more numerical steps.",
+      "concepts": [
+        {
+          "name": "Slope at a point",
+          "explanation": "For y′ = f(t, y), f(t, y) gives the instantaneous slope at that point.",
+          "derivation": "The derivative is the limiting rate of change. Substituting the current t and y into f gives the local rate specified by the equation.",
+          "sources": [
+            "Illustrative derivation for this demonstration; not a course lecture."
+          ]
+        },
+        {
+          "name": "Step size and approximation",
+          "explanation": "The step size h is the change in t used for each estimate. The resulting estimate need not equal the exact solution.",
+          "derivation": "Using slope × horizontal change to approximate vertical change gives y(next) ≈ y(current) + h × slope.",
+          "sources": [
+            "Illustrative derivation for this demonstration; not a course lecture."
+          ]
+        }
+      ],
+      "example": {
+        "problem": "For y′ = t + y, y(0) = 1, estimate y(1) using two Euler steps of h = 0.5.",
+        "steps": [
+          "At t = 0 and y = 1, the slope is 0 + 1 = 1, so y₁ = 1 + 0.5(1) = 1.5.",
+          "At t = 0.5 and y₁ = 1.5, the slope is 0.5 + 1.5 = 2, so y₂ = 1.5 + 0.5(2) = 2.5.",
+          "After two steps t = 1, giving the estimate y(1) ≈ 2.5; this is not the exact value."
+        ]
+      },
+      "progression": {
+        "individual": "First practise calculating f(t, y) at a given point and identifying a step size.",
+        "combined": "Then combine slope evaluation, repeated steps and an interpretation of numerical error."
+      },
+      "graphic": {
+        "title": "A two-step Euler calculation",
+        "caption": "Recalculate the slope after every step.",
+        "steps": [
+          "Start: t = 0, y = 1",
+          "Slope = 0 + 1 = 1; next y = 1.5",
+          "Slope = 0.5 + 1.5 = 2; next y = 2.5"
+        ]
+      }
+    }
+  ],
+  "gaps": [
+    "This is an illustrative example. A real lesson must use the student’s reviewed exam scope and cite actual course sources."
+  ],
+  "relationships": [
+    {
+      "from": "Euler’s method",
+      "to": "Differential equations",
+      "label": "approximates solutions of"
+    }
+  ]
+}

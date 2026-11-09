@@ -203,3 +203,15 @@ python3 practice.py solution COURSE_ID SESSION_ID QUESTION_ID
 ```
 
 Use `--mode mock` to keep hints and solutions hidden until `python3 practice.py finish COURSE_ID SESSION_ID`; then use `practice.py solutions COURSE_ID SESSION_ID`. The mock reports elapsed time and stops accepting answers after the deadline; it does not automatically grade them. After reviewing an answer, `python3 practice.py assess COURSE_ID SESSION_ID QUESTION_ID --result retry --confidence 2` records the student-reviewed result and suggests a next-day review. Results can be `correct`, `partial`, `retry`, or `unknown`; confidence is optional, from 0 to 5. Mock answers can be assessed after finishing. Question banks, solutions and submitted answers are stored in `study-data/` and excluded from Git. Import does not overwrite an existing bank.
+
+### Concepts page before practice
+
+The exam-prep and cram skills build a local HTML lesson before tutoring. It contains a categorized visual mind map of concepts and their relationships, explanatory graphics, the concepts required for each problem type, and lecture-by-lecture first-principles explanations with reasoning, worked examples, citations and identified gaps. The skills then move from individual concepts to combined exam-style problems. Open the illustrative [example concepts page](examples/concepts-demo.html) from a local clone; its course and source labels are fictional.
+
+Codex prepares the content from your reviewed scope and course materials using `templates/concept-lesson.example.json`. The renderer checks the course prerequisites, exam ID and required sections, then saves a new file in `study-data/COURSE_ID/lessons/` and can open it:
+
+```sh
+python3 concept_page.py COURSE_ID /path/to/lesson.json --open
+```
+
+The HTML is self-contained and renders input as text; it does not automatically verify the lesson’s claims, sources or mathematical reasoning. Review them against the original course materials. Equations can be written with readable Unicode or plain-text notation. If opening the browser fails, open the printed file path manually.

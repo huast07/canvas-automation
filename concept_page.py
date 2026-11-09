@@ -67,6 +67,30 @@ def validate(data):
         if not isinstance(relation, dict) or relation.get('from') not in names or relation.get('to') not in names or relation['from'] == relation['to']:
             raise ValueError('Relationships must connect different concepts on the knowledge map')
         require_text(relation.get('label'), 'Relationship label')
+    details = data.get('concept_details')
+    if details is not None:
+        if not isinstance(details, list):
+            raise ValueError('concept_details must be a list')
+        detail_names = []
+        for i, detail in enumerate(details, 1):
+            if not isinstance(detail, dict) or detail.get('concept') not in names:
+                raise ValueError(f'Concept detail {i} must name a concept on the map')
+            if detail.get('status') not in ('explained', 'missing'):
+                raise ValueError(f'Concept detail {i} must be explained or missing')
+            if detail['status'] == 'missing':
+                require_text(detail.get('reason'), f'Concept detail {i} missing reason')
+            else:
+                for field in ('first_principles', 'assumptions', 'derivation', 'example'):
+                    require_text(detail.get(field), f'Concept detail {i} {field}')
+                sources = detail.get('sources')
+                if not isinstance(sources, list) or not sources:
+                    raise ValueError(f'Concept detail {i} needs source citations')
+                for source in sources:
+                    require_text(source, f'Concept detail {i} source')
+                validate_graphic(detail.get('graphic'), f'Concept detail {i}')
+            detail_names.append(detail['concept'])
+        if len(detail_names) != len(set(detail_names)) or set(detail_names) != set(names):
+            raise ValueError('concept_details must cover each map concept exactly once')
     coverage = data.get('source_coverage', [])
     if not isinstance(coverage, list):
         raise ValueError('source_coverage must be a list')
@@ -162,7 +186,7 @@ def svg_lines(label, x, y, max_width=22, max_lines=3):
     return ''.join(f'<tspan x="{x}" y="{y + i * 19}">{escape(line)}</tspan>' for i, line in enumerate(lines))
 
 
-def render_mindmap(data):
+def render_mindmap(data, concept_hrefs=None):
     items = data['knowledge_map']
     groups = list(dict.fromkeys(item['group'] for item in items))
     group_index = {group: i for i, group in enumerate(groups)}
@@ -199,7 +223,8 @@ def render_mindmap(data):
     for index, item in enumerate(ordered):
         x, y = positions[item['concept']]
         color = PALETTE[group_index[item['group']] % len(PALETTE)]
-        nodes.append(f'<a href="#concept-{index+1}"><title>{escape(item["concept"])} — {escape(item["group"])}</title><rect x="{x}" y="{y}" width="190" height="60" rx="12" fill="{color}" stroke="#9aabb8"/><text class="map-label" x="{x+12}" y="{y+25}">{svg_lines(item["concept"],x+12,y+25,20,2)}</text></a>')
+        href = (concept_hrefs or {}).get(item['concept'], f'#concept-{index+1}')
+        nodes.append(f'<a href="{escape(href, quote=True)}"><title>{escape(item["concept"])} — {escape(item["group"])}</title><rect x="{x}" y="{y}" width="190" height="60" rx="12" fill="{color}" stroke="#9aabb8"/><text class="map-label" x="{x+12}" y="{y+25}">{svg_lines(item["concept"],x+12,y+25,20,2)}</text></a>')
     all_relations = [{'from': prerequisite, 'to': item['concept'], 'label': 'prerequisite for'} for item in items for prerequisite in item['prerequisites']]
     all_relations += data.get('relationships', [])
     for index, relation in enumerate(all_relations):
@@ -232,10 +257,10 @@ def render_graphic(graphic, identifier):
     return f'<figure class="explain-graphic"><figcaption><strong>{text(graphic["title"])}</strong><br>{text(graphic["caption"])}</figcaption><svg viewBox="0 0 700 {y-10}" role="img" aria-label="{escape(graphic["title"], quote=True)}: {escape(graphic["caption"], quote=True)}"><defs><marker id="{identifier}-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#367887"/></marker></defs>{"".join(elements)}</svg><ol class="sr-only">{"".join(f"<li>{text(step)}</li>" for step in steps)}</ol></figure>'
 
 
-def render(data):
+def render(data, concept_hrefs=None):
     validate(data)
     nav = ''.join(f'<li><a href="#category-{i}">{text(cat["title"])}</a></li>' for i, cat in enumerate(data['categories'], 1))
-    diagram = render_mindmap(data)
+    diagram = render_mindmap(data, concept_hrefs)
     knowledge = []
     ordered = []
     for group in dict.fromkeys(x['group'] for x in data['knowledge_map']):
@@ -243,17 +268,24 @@ def render(data):
             ordered.extend(x for x in data['knowledge_map'] if x['group'] == group and x.get('subgroup', 'General') == subgroup)
     for index, item in enumerate(ordered, 1):
         prereqs = ', '.join(item['prerequisites']) if item['prerequisites'] else 'None listed'
-        knowledge.append(f'<article id="concept-{index}" class="map-card"><p class="eyebrow">{text(item["group"])} / {text(item.get("subgroup", "General"))}</p><h3>{text(item["concept"])}</h3><p>{text(item["role"])}</p><p class="sources"><strong>Type:</strong> {text(item.get("kind", "concept"))} · <strong>Scope:</strong> {text(item.get("scope_status", "unknown"))}</p><p class="sources"><strong>Builds on:</strong> {text(prereqs)}</p></article>')
+        href = (concept_hrefs or {}).get(item['concept'], f'#concept-{index}')
+        knowledge.append(f'<article id="concept-{index}" class="map-card"><p class="eyebrow">{text(item["group"])} / {text(item.get("subgroup", "General"))}</p><h3><a href="{escape(href, quote=True)}">{text(item["concept"])}</a></h3><p>{text(item["role"])}</p><p class="sources"><strong>Type:</strong> {text(item.get("kind", "concept"))} · <strong>Scope:</strong> {text(item.get("scope_status", "unknown"))}</p><p class="sources"><strong>Builds on:</strong> {text(prereqs)}</p></article>')
     coverage = data.get('source_coverage', [])
     if coverage:
         coverage_rows = ''.join(f'<tr><td>{text(item["lecture"])}</td><td>{text(item["status"].replace("_", " "))}</td><td>{text(", ".join(item["concepts"]) or "None identified")}</td><td>{text(item["source"])}<br>{text(item.get("notes", ""))}</td></tr>' for item in coverage)
         coverage_html = f'<div class="table-scroll"><table><thead><tr><th>Lecture</th><th>Status</th><th>Mapped concepts</th><th>Source and notes</th></tr></thead><tbody>{coverage_rows}</tbody></table></div><p class="sources">Coverage statuses are reported by the lesson author and are not independently verified.</p>'
     else:
         coverage_html = '<p>No lecture-by-lecture coverage checklist was supplied; completeness is unknown.</p>'
-    lectures = []
+    lecture_groups = {}
     for index, lecture in enumerate(data['lecture_explainers'], 1):
         refs = ''.join(f'<li>{text(source)}</li>' for source in lecture['sources'])
-        lectures.append(f'<article class="concept"><p class="eyebrow">{text(lecture["lecture"])}</p><h3>{text(lecture["concept"])}</h3><p>{text(lecture["first_principles"])}</p><p><strong>Reasoning / derivation.</strong> {text(lecture["derivation"])}</p><p><strong>Example.</strong> {text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{index}")}<div class="sources"><strong>Sources</strong><ul>{refs}</ul></div></article>')
+        href = (concept_hrefs or {}).get(lecture['concept'])
+        title = text(lecture['concept'])
+        if href:
+            title = f'<a href="{escape(href, quote=True)}">{title}</a>'
+        article = f'<article class="concept"><h4>{title}</h4><p>{text(lecture["first_principles"])}</p><p><strong>Reasoning / derivation.</strong> {text(lecture["derivation"])}</p><p><strong>Example.</strong> {text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{index}")}<div class="sources"><strong>Sources</strong><ul>{refs}</ul></div></article>'
+        lecture_groups.setdefault(lecture['lecture'], []).append(article)
+    lectures = [f'<div class="lecture-group"><h3>{text(name)}</h3>{"".join(articles)}</div>' for name, articles in lecture_groups.items()]
     sections = []
     for i, category in enumerate(data['categories'], 1):
         concepts = []
@@ -270,6 +302,60 @@ def render(data):
 <style>
 :root{{--ink:#17263b;--muted:#52657a;--line:#dce5ed;--blue:#095d75;--paper:#fff;--bg:#f3f6f8}}*{{box-sizing:border-box}}html{{scroll-behavior:smooth}}body{{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}a{{color:#075c78}}a:focus-visible{{outline:3px solid #d98520;outline-offset:3px}}header{{background:#143249;color:white;padding:3.5rem max(1.25rem,calc((100vw - 1120px)/2));}}header p{{max-width:65ch;margin:.7rem 0 0;color:#d4e6eb}}h1{{font-size:clamp(2rem,5vw,3.2rem);line-height:1.12;margin:.35rem 0}}.eyebrow{{font-size:.72rem;font-weight:750;letter-spacing:.13em;text-transform:uppercase;color:#357387}}header .eyebrow{{color:#94d8df}}.layout{{max-width:1120px;margin:auto;padding:2rem 1.25rem 4rem;display:grid;grid-template-columns:240px minmax(0,1fr);gap:2rem;align-items:start}}nav{{position:sticky;top:1.2rem;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:1.2rem}}nav h2{{font-size:.85rem;margin:0}}.diagram-scroll{{overflow:auto;max-height:75vh;border:1px solid var(--line);border-radius:10px;background:#fbfcfd}}.diagram-scroll svg{{display:block;min-width:760px;width:100%;height:auto}}.branch{{fill:none;stroke:#afc3ca;stroke-width:1.5}}.relation{{fill:none;stroke:#b45c27;stroke-width:2;stroke-dasharray:5 3}}.map-label{{fill:#17263b;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}.legend{{display:flex;gap:.8rem;flex-wrap:wrap;margin:1rem 0;font-size:.86rem}}.legend i{{display:inline-block;width:.8rem;height:.8rem;border:1px solid #9aabb8;border-radius:3px;margin-right:.3rem}}.explain-graphic{{margin:1.25rem 0;padding:1rem;border:1px solid var(--line);border-radius:10px}}.explain-graphic svg{{width:100%;height:auto;display:block}}.sr-only{{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}.table-scroll{{overflow-x:auto}}table{{border-collapse:collapse;width:100%;font-size:.9rem}}th,td{{text-align:left;border-bottom:1px solid var(--line);padding:.65rem;vertical-align:top}}th{{background:#f1f7f8}}.map-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75rem}}.map-card{{padding:1rem;border-radius:10px;background:#f1f7f8}}.map-card p{{font-size:.92rem}}nav ol{{padding-left:1.3rem;margin:.6rem 0}}nav li{{margin:.45rem 0}}main{{min-width:0}}.category,.notice{{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:clamp(1.3rem,3vw,2rem);margin-bottom:1.2rem}}h2{{font-size:1.65rem;line-height:1.25;margin:.25rem 0 .7rem}}h3{{font-size:1.05rem;margin:0 0 .5rem}}p{{margin:.5rem 0 1rem;overflow-wrap:anywhere}}.lead{{color:var(--muted);font-size:1.05rem}}.concept{{border-left:3px solid #62a7b1;padding:.15rem 0 .15rem 1rem;margin:1.5rem 0}}.sources{{font-size:.88rem;color:var(--muted);overflow-wrap:anywhere}}.sources ul{{margin:.2rem 0;padding-left:1.1rem}}.example,.progression{{padding:1.2rem;border-radius:10px;background:#f1f7f8;margin-top:1rem}}.progression{{background:#fbf5ea}}.example ol{{padding-left:1.4rem}}.example li{{margin:.5rem 0}}.notice{{color:var(--muted);font-size:.92rem}}@media(max-width:700px){{header{{padding:2rem 1.25rem}}.layout{{display:block}}nav{{position:static;margin-bottom:1rem}}}}@media print{{body{{background:white}}header{{padding:1rem;background:white;color:black}}header p,header .eyebrow{{color:black}}.layout{{display:block;padding:0}}nav{{position:static}}.category,.notice{{break-inside:avoid;border:0}}}}
 </style></head><body><header><p class="eyebrow">FIRST PRINCIPLES • EXAM PREPARATION</p><h1>{text(data['course'])}</h1><p>{text(data['exam'])}</p><p>{text(data['overview'])}</p></header><div class="layout"><nav aria-label="Lesson contents"><h2>On this page</h2><ul><li><a href="#knowledge-map">Knowledge map</a></li><li><a href="#coverage">Lecture coverage</a></li><li><a href="#problem-types">Problem types and concepts</a></li><li><a href="#lecture-explainers">Lecture explainers</a></li></ul><h2>Problem categories</h2><ol>{nav}</ol><a href="#gaps">Coverage and gaps</a></nav><main><section id="knowledge-map" class="category"><p class="eyebrow">01 • THE BIG PICTURE</p><h2>Knowledge map</h2><p class="lead">Key concepts and their prerequisite relationships.</p>{diagram}<p class="sources">Colored branches group concepts. Dashed arrows show relationships; use the list above for their labels.</p><div class="map-grid">{''.join(knowledge)}</div></section><section id="coverage" class="category"><p class="eyebrow">COVERAGE CHECK</p><h2>Lecture-by-lecture coverage</h2>{coverage_html}</section><section id="problem-types" class="notice"><h2>Concepts for each problem type</h2><p>The categories below connect each question type to its prerequisites, worked example and practice progression.</p></section>{''.join(sections)}<section id="lecture-explainers" class="category"><p class="eyebrow">03 • BUILD FROM FIRST PRINCIPLES</p><h2>Core lecture concepts</h2><p class="lead">Definitions, reasoning and examples organized by lecture.</p>{''.join(lectures)}</section><section id="gaps" class="notice"><h2>Coverage and gaps</h2><ul>{gaps}</ul><p>Explanations are study aids. Verify formulas, quotations, diagrams and exam requirements against the cited sources.</p></section></main></div></body></html>'''
+
+
+def render_concept(data, concept, parent_name, concept_hrefs):
+    """Render a concept without inventing explanations for missing source data."""
+    item = next(x for x in data['knowledge_map'] if x['concept'] == concept)
+    detail = next((x for x in data.get('concept_details', []) if x['concept'] == concept), None)
+    lectures = [x for x in data['lecture_explainers'] if x['concept'] == concept]
+    categories = [(category, entry) for category in data['categories'] for entry in category['concepts'] if entry['name'] == concept]
+    sections = []
+    if detail and detail['status'] == 'explained':
+        sources = ''.join(f'<li>{text(source)}</li>' for source in detail['sources'])
+        sections.append(f'<section><h2>From first principles</h2><p>{text(detail["first_principles"])}</p><h3>Assumptions</h3><p>{text(detail["assumptions"])}</p><h3>Reasoning / derivation</h3><p>{text(detail["derivation"])}</p><h3>Example</h3><p>{text(detail["example"])}</p>{render_graphic(detail["graphic"], "detail")}<h3>Sources</h3><ul>{sources}</ul></section>')
+    elif detail and detail['status'] == 'missing':
+        sections.append(f'<section class="warning"><h2>Explanation unavailable</h2><p>{text(detail["reason"])}</p></section>')
+    for i, lecture in enumerate(lectures, 1):
+        refs = ''.join(f'<li>{text(source)}</li>' for source in lecture['sources'])
+        sections.append(f'<section><p class="eyebrow">{text(lecture["lecture"])}</p><h2>Lecture explanation</h2><p>{text(lecture["first_principles"])}</p><h3>Reasoning / derivation</h3><p>{text(lecture["derivation"])}</p><h3>Example</h3><p>{text(lecture["example"])}</p>{render_graphic(lecture["graphic"], f"lecture-{i}")}<h3>Sources</h3><ul>{refs}</ul></section>')
+    for i, (category, entry) in enumerate(categories, 1):
+        refs = ''.join(f'<li>{text(source)}</li>' for source in entry['sources'])
+        steps = ''.join(f'<li>{text(step)}</li>' for step in category['example']['steps'])
+        sections.append(f'<section><p class="eyebrow">PROBLEM TYPE</p><h2>{text(category["title"])}</h2><p>{text(entry["explanation"])}</p><h3>Reasoning / derivation</h3><p>{text(entry["derivation"])}</p>{render_graphic(category["graphic"], f"category-{i}")}<h3>Worked example</h3><p>{text(category["example"]["problem"])}</p><ol>{steps}</ol><h3>Sources</h3><ul>{refs}</ul></section>')
+    if not sections:
+        sections.append('<section class="warning"><h2>Detailed explanation not yet available</h2><p>This concept was identified in the map but no verified first-principles explanation was supplied. Check the source inventory and ask for missing material.</p></section>')
+    related = []
+    for relation in data.get('relationships', []):
+        if relation['from'] == concept or relation['to'] == concept:
+            other = relation['to'] if relation['from'] == concept else relation['from']
+            related.append(f'<li>{text(relation["from"])} — {text(relation["label"])} → {text(relation["to"])} (<a href="{escape(concept_hrefs[other], quote=True)}">Open {text(other)}</a>)</li>')
+    for prerequisite in item['prerequisites']:
+        related.append(f'<li>Prerequisite: <a href="{escape(concept_hrefs[prerequisite], quote=True)}">{text(prerequisite)}</a></li>')
+    related_html = ''.join(related) or '<li>No relationships recorded.</li>'
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>{text(concept)} — {text(data['course'])}</title><style>body{{margin:0;background:#f3f6f8;color:#17263b;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}header{{background:#143249;color:white;padding:2rem max(1.25rem,calc((100vw - 850px)/2))}}header a{{color:#cbeef3}}main{{max-width:850px;margin:auto;padding:1.5rem}}section{{background:white;border:1px solid #dce5ed;border-radius:12px;padding:1.5rem;margin:1rem 0;overflow-wrap:anywhere}}h1{{line-height:1.2}}h2{{margin-top:0}}.eyebrow{{text-transform:uppercase;letter-spacing:.1em;font-size:.75rem;color:#52657a}}.warning{{background:#fbf5ea}}a{{color:#075c78}}a:focus-visible{{outline:3px solid #d98520}}.explain-graphic{{margin:1rem 0;padding:1rem;border:1px solid #dce5ed;border-radius:10px}}.explain-graphic svg{{width:100%;height:auto;display:block}}.map-label{{fill:#17263b;font:600 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}.sr-only{{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}}</style></head><body><header><a href="{escape(parent_name, quote=True)}#knowledge-map">← Back to knowledge map</a><h1>{text(concept)}</h1><p>{text(data['course'])} · {text(item['group'])}</p></header><main><section><h2>Why this matters</h2><p>{text(item['role'])}</p><p>Scope: {text(item.get('scope_status', 'unknown'))}</p></section>{''.join(sections)}<section><h2>Related concepts</h2><ul>{related_html}</ul></section><section><p>Verify claims and examples against the cited course materials.</p></section></main></body></html>'''
+
+
+def write_site(data, main_path):
+    """Create a new main page and sibling concept pages; never replace existing files."""
+    validate(data)
+    folder = main_path.parent / main_path.stem
+    names = {item['concept']: f'concept-{i:03}.html' for i, item in enumerate(data['knowledge_map'], 1)}
+    hrefs = {name: folder.name + '/' + filename for name, filename in names.items()}
+    page = render(data, hrefs)
+    pages = {filename: render_concept(data, name, '../' + main_path.name, names) for name, filename in names.items()}
+    folder.mkdir()
+    try:
+        output = main_path.open('x', encoding='utf-8')
+    except BaseException:
+        folder.rmdir()
+        raise
+    with output:
+        for filename, content in pages.items():
+            with (folder / filename).open('x', encoding='utf-8') as child:
+                child.write(content)
+        output.write(page)
+    return folder
 
 
 def main():
@@ -289,7 +375,6 @@ def main():
         scope = read_json(course_dir(args.course_id) / 'exam-scope.json', {})
         if data['exam_id'] != (scope.get('exam_id') or scope.get('exam')):
             raise ValueError('Lesson exam_id must match the saved exam scope')
-        html = render(data)
         directory = course_dir(args.course_id) / 'lessons'
         directory.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
@@ -297,8 +382,7 @@ def main():
             suffix = '' if attempt == 0 else f'-{attempt}'
             path = directory / f'concepts-{stamp}{suffix}.html'
             try:
-                with path.open('x', encoding='utf-8') as out:
-                    out.write(html)
+                write_site(data, path)
                 break
             except FileExistsError:
                 continue

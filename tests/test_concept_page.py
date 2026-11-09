@@ -68,6 +68,7 @@ class ConceptPageTests(unittest.TestCase):
             {'concept': 'Primary evidence', 'group': 'Historical sources', 'subgroup': 'Evidence', 'kind': 'source type', 'scope_status': 'confirmed', 'role': 'Contemporary evidence', 'prerequisites': []},
             {'concept': 'Interpretive argument', 'group': 'Historical analysis', 'subgroup': 'Argument', 'kind': 'method', 'scope_status': 'inferred', 'role': 'A claim supported by evidence', 'prerequisites': ['Primary evidence']},
         ]
+        data['concept_details'] = [{'concept': item['concept'], 'status': 'missing', 'reason': 'Not yet reviewed'} for item in data['knowledge_map']]
         data['relationships'] = [{'from': 'Primary evidence', 'to': 'Interpretive argument', 'label': 'supports'}]
         data['lecture_explainers'] = [data['lecture_explainers'][0]]
         data['lecture_explainers'][0]['concept'] = 'Primary evidence'
@@ -84,6 +85,35 @@ class ConceptPageTests(unittest.TestCase):
         self.assertIn('Unavailable recording', page)
         self.assertIn('Not inspected', page)
         self.assertIn('inferred', page)
+
+    def test_subpages_link_to_map_and_report_missing_details(self):
+        with tempfile.TemporaryDirectory() as temp:
+            main = Path(temp) / 'lesson.html'
+            folder = concept_page.write_site(self.example, main)
+            page = main.read_text(encoding='utf-8')
+            self.assertIn('lesson/concept-001.html', page)
+            self.assertEqual(len(list(folder.glob('*.html'))), len(self.example['knowledge_map']))
+            first = (folder / 'concept-001.html').read_text(encoding='utf-8')
+            self.assertIn('../lesson.html#knowledge-map', first)
+            self.assertIn('Reasoning / derivation', first)
+            self.assertIn('Sources', first)
+            # Not every map node has a detailed write-up in the illustrative sample.
+            self.assertTrue(any('Explanation unavailable' in child.read_text() for child in folder.glob('*.html')))
+            with self.assertRaises(FileExistsError):
+                concept_page.write_site(self.example, main)
+
+    def test_concept_details_require_every_node_and_sources(self):
+        lesson = copy.deepcopy(self.example)
+        lesson['concept_details'] = [{'concept': item['concept'], 'status': 'missing', 'reason': 'Not yet reviewed'} for item in lesson['knowledge_map']]
+        concept_page.validate(lesson)
+        lesson['concept_details'].pop()
+        with self.assertRaises(ValueError):
+            concept_page.validate(lesson)
+        lesson = copy.deepcopy(self.example)
+        lesson['concept_details'] = [{'concept': item['concept'], 'status': 'missing', 'reason': 'Not yet reviewed'} for item in lesson['knowledge_map']]
+        lesson['concept_details'][0] = {'concept': lesson['knowledge_map'][0]['concept'], 'status': 'explained'}
+        with self.assertRaises(ValueError):
+            concept_page.validate(lesson)
 
     def test_missing_sources_or_combined_progression_are_rejected(self):
         lesson = copy.deepcopy(self.example)

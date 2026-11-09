@@ -206,12 +206,15 @@ Use `--mode mock` to keep hints and solutions hidden until `python3 practice.py 
 
 ### Concepts page before practice
 
-The exam-prep and cram skills build a local HTML lesson before tutoring. It contains a categorized visual mind map of concepts, methods, variants and relationships; explanatory graphics; concepts required for each problem type; and lecture-by-lecture explanations with reasoning, worked examples and citations. A source-coverage checklist records which lectures were mapped, partially inspected, unavailable or outside the exam. These statuses are supplied by the lesson author and do not independently prove completeness. The skills then move from individual concepts to combined exam-style problems. Open the illustrative [example concepts page](examples/concepts-demo.html) from a local clone; its course and source labels are fictional.
+The exam-prep and cram skills build a local HTML lesson before tutoring. It contains a categorized visual mind map of concepts, methods, variants and relationships; explanatory graphics; concepts required for each problem type; and lecture-by-lecture explanations. Each lecture can cover several concepts, and map nodes link to individual concept pages with first principles, assumptions, reasoning, examples and citations when supported by the materials. Missing explanations are identified explicitly. A source-coverage checklist records which lectures were mapped, partially inspected, unavailable or outside the exam; these statuses are supplied by the lesson author and do not independently prove completeness. Open the illustrative [example concepts page](examples/concepts-demo.html) from a local clone; its course and source labels are fictional.
 
-Codex prepares the content from your reviewed scope and course materials using `templates/concept-lesson.example.json`. The renderer checks the course prerequisites, exam ID and required sections, then saves a new file in `study-data/COURSE_ID/lessons/` and can open it:
+Codex prepares the content from your reviewed scope and course materials using `templates/concept-lesson.example.json`. The renderer checks the course prerequisites, exam ID and required sections, then saves a new main page and linked subpages in `study-data/COURSE_ID/lessons/`. Codex can open a temporary local lesson server and wait for you to select **I understand**:
 
 ```sh
-python3 concept_page.py COURSE_ID /path/to/lesson.json --open
+python3 concept_page.py COURSE_ID /path/to/lesson.json
+python3 lesson_ready.py /path/to/generated-lesson.html --open
 ```
+
+The button signals the waiting Codex session that you are ready; return to the chat to begin progressive tutoring. For each sourced problem type, Codex starts with individual concepts and builds toward combined, midterm-level problems. Selecting the button does not establish mastery. If the local server cannot run or times out, open the saved HTML directly and tell Codex in chat when you are ready. The local URL is temporary and stops working when the listener ends.
 
 The HTML is self-contained and renders input as text; it does not automatically verify the lesson’s claims, sources or mathematical reasoning. Review them against the original course materials. Equations can be written with readable Unicode or plain-text notation. If opening the browser fails, open the printed file path manually.

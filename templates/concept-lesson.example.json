@@ -651,5 +651,237 @@
       ],
       "notes": "Only the transform definition is explained in depth in this example."
     }
+  ],
+  "concept_details": [
+    {
+      "concept": "Rate of change",
+      "status": "explained",
+      "first_principles": "If y(t) represents a quantity, its average rate of change over a short interval h is [y(t + h) − y(t)] / h. The derivative is the limit of that average as h approaches zero, when the limit exists.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "For y(t) = t², [y(t + h) − y(t)] / h = [(t + h)² − t²] / h = 2t + h. As h approaches zero, the rate approaches 2t.",
+      "example": "At t = 3, y′(3) = 6. Over a very short interval, the value initially increases at about 6 units per unit of time.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "From average change to instantaneous rate",
+        "caption": "The derivative is the limit of the average rate as the interval becomes small.",
+        "steps": [
+          "Average rate: [y(t + h) − y(t)] / h",
+          "For y(t) = t²: the quotient simplifies to 2t + h",
+          "As h approaches 0, the derivative is 2t"
+        ]
+      }
+    },
+    {
+      "concept": "Differential equations",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Initial value problems",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Linear versus nonlinear",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Existence and uniqueness",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Separation of variables",
+      "status": "explained",
+      "first_principles": "A separable equation has the form y′ = g(t)h(y), so its time and state factors can be treated separately where h(y) is nonzero.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "Because y′ = dy/dt, dividing by h(y) and integrating gives ∫dy/h(y) = ∫g(t)dt + C on an interval where division is valid. Check any excluded constant solutions separately.",
+      "example": "For y′ = 2y and y(0) = 1, separation gives ln|y| = 2t + C; the initial condition selects y = e^(2t).",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Separation of variables",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Identify the time and state factors",
+          "Separate where the state factor is nonzero",
+          "Integrate, use the initial value, and check excluded solutions"
+        ]
+      }
+    },
+    {
+      "concept": "Integrating factors",
+      "status": "explained",
+      "first_principles": "A linear first-order equation has the form y′ + p(t)y = q(t). An integrating factor makes its left side a product derivative.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "The product rule gives (μy)′ = μy′ + μ′y. Matching μ(y′ + py) requires μ′ = pμ; therefore one choice is μ = exp(∫p(t)dt).",
+      "example": "For y′ + y = 0, μ = e^t. Thus (e^t y)′ = 0, and y(0) = 1 gives y = e^(−t).",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Integrating factors",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Start with y′ + p(t)y = q(t)",
+          "Choose μ so that μ′ = pμ",
+          "Integrate (μy)′ = μq and apply the initial condition"
+        ]
+      }
+    },
+    {
+      "concept": "Autonomous equations",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Equilibria and stability",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Linear systems",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Eigenvalues and eigenvectors",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Repeated eigenvalues",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Matrix exponential",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Phase portraits",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Slope at a point",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Step size and approximation",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Euler’s method",
+      "status": "explained",
+      "first_principles": "A differential equation y′ = f(t, y) specifies the slope at each point. Starting from a known value, we can use that slope to estimate the value a small time step later.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "For a short step h, the definition of derivative suggests [y(t + h) − y(t)] / h ≈ f(t, y(t)); rearranging gives y(t + h) ≈ y(t) + h f(t, y(t)). This is an approximation, not an exact equality in general.",
+      "example": "If y′ = t + y and y(0) = 1, one step of h = 0.5 gives y(0.5) ≈ 1 + 0.5(0 + 1) = 1.5.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "One Euler step",
+        "caption": "Use the current slope to estimate the next point.",
+        "steps": [
+          "Start at the known point (t, y)",
+          "Calculate slope f(t, y)",
+          "Move right by h and change y by approximately h × slope"
+        ]
+      }
+    },
+    {
+      "concept": "Improved Euler method",
+      "status": "explained",
+      "first_principles": "Improved Euler estimates the slope at both the beginning and a predicted end point, then averages them.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "Let k₁ = f(tₙ,yₙ), predict y* = yₙ + hk₁, and take k₂ = f(tₙ+h,y*). Averaging slopes gives yₙ₊₁ = yₙ + h(k₁+k₂)/2.",
+      "example": "For y′ = t + y, y(0) = 1 and h = 0.5: k₁ = 1, y* = 1.5, k₂ = 2, so the improved estimate is 1.75.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Improved Euler method",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Calculate the starting slope k₁",
+          "Predict the next value using Euler’s method",
+          "Calculate k₂ at the prediction and average the slopes"
+        ]
+      }
+    },
+    {
+      "concept": "Runge–Kutta method",
+      "status": "explained",
+      "first_principles": "A four-stage Runge–Kutta method combines several slope estimates across a step.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "The classical method forms slopes k₁, k₂, k₃ and k₄ and weights them 1, 2, 2, 1: yₙ₊₁ = yₙ + h(k₁+2k₂+2k₃+k₄)/6. Its error-order proof requires additional assumptions and a Taylor-series argument.",
+      "example": "If y′ = 1, every stage slope is 1, so the method advances y by exactly h.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Runge–Kutta method",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Estimate slopes at the start, midpoint and end",
+          "Combine the slopes using weights 1:2:2:1",
+          "Advance the value by the weighted slope times h"
+        ]
+      }
+    },
+    {
+      "concept": "Local truncation error",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Global error",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Laplace transform",
+      "status": "explained",
+      "first_principles": "The Laplace transform expresses a function of time as an integral depending on a parameter s, when that integral converges.",
+      "assumptions": "Assume the functions and operations used below are defined under the stated conditions. Check the cited source for the full hypotheses.",
+      "derivation": "For f(t) = e^(at), the definition gives ∫₀∞ e^(−st)e^(at)dt = ∫₀∞ e^(−(s−a)t)dt = 1/(s−a), provided s > a.",
+      "example": "With a = 2, the transform is 1/(s−2), for s > 2.",
+      "sources": [
+        "Illustrative material for this demonstration; not a course lecture."
+      ],
+      "graphic": {
+        "title": "Laplace transform",
+        "caption": "An illustrative reasoning path.",
+        "steps": [
+          "Start with the defining integral",
+          "Combine the exponentials",
+          "Integrate and state the convergence condition"
+        ]
+      }
+    },
+    {
+      "concept": "Linearity of the transform",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Transform of a derivative",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    },
+    {
+      "concept": "Inverse Laplace transform",
+      "status": "missing",
+      "reason": "This illustrative sample does not include a dedicated first-principles explanation for this concept. Related problem-type notes may appear below."
+    }
   ]
 }

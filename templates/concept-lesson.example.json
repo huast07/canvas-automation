@@ -446,7 +446,7 @@
         ]
       },
       "progression": {
-        "individual": "First practise calculating f(t, y) at a given point and identifying a step size.",
+        "individual": "Roadmap: identify the initial point and step size; evaluate the slope; update the estimate; repeat to the target and interpret the approximation. Explain slope and step size first for beginners, then check each step with a simple question.",
         "combined": "Then combine slope evaluation, repeated steps and an interpretation of numerical error."
       },
       "graphic": {
